@@ -1,0 +1,125 @@
+.m3-paginator {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-m) 0;
+  gap: var(--space-m);
+  flex-wrap: wrap;
+  border-top: 1px solid var(--border-color);
+  margin-top: var(--space-m);
+  color: var(--text-secondary);
+  font-size: 13px;
+
+  .paginator-size {
+    display: flex;
+    align-items: center;
+    gap: var(--space-s);
+
+    .paginator-label {
+      color: var(--text-muted);
+    }
+
+    .select-wrapper {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+
+      select {
+        appearance: none;
+        background: var(--mat-sys-surface-container-high, var(--hover-bg));
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-sm);
+        padding: var(--space-2) var(--space-8) var(--space-2) var(--space-3);
+        color: var(--text-primary);
+        font-family: inherit;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        outline: none;
+        transition: all 0.2s;
+
+        &:focus {
+          border-color: var(--mat-sys-primary, var(--primary-color));
+          box-shadow: 0 0 0 2px color-mix(in srgb, var(--mat-sys-primary, var(--primary-color)) 15%, transparent);
+        }
+      }
+
+      .select-arrow {
+        position: absolute;
+        right: 8px;
+        pointer-events: none;
+        color: var(--text-secondary);
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+      }
+    }
+  }
+
+  .paginator-range {
+    font-weight: 500;
+    color: var(--text-primary);
+  }
+
+  .paginator-buttons {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+
+    button {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      color: var(--text-secondary);
+
+      &.page-num-btn {
+        font-family: 'Outfit', sans-serif !important;
+        font-weight: 600;
+        font-size: 13px;
+
+        &.active {
+          background-color: var(--mat-sys-primary, var(--primary-color)) !important;
+          color: var(--mat-sys-on-primary, #fff) !important;
+          box-shadow: var(--elevation-2);
+        }
+      }
+
+      &:disabled {
+        opacity: 0.4;
+        color: var(--text-muted);
+      }
+    }
+
+    .paginator-ellipsis {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+  }
+
+  @media (max-width: 640px) {
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-s);
+    text-align: center;
+
+    .paginator-size {
+      order: 2;
+    }
+
+    .paginator-range {
+      order: 1;
+    }
+
+    .paginator-buttons {
+      order: 3;
+      width: 100%;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+  }
+}

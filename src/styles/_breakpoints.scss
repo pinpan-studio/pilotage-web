@@ -1,0 +1,112 @@
+// ═══════════════════════════════════════════════════════════
+//  BREAKPOINTS — Système responsive Admin Lookas
+//  Couvre : 375px → 1920px+
+// ═══════════════════════════════════════════════════════════
+
+// ─── Variables ───────────────────────────────────────────
+$bp-xs:   375px;   // Petits mobiles
+$bp-sm:   480px;   // Mobiles standard
+$bp-md:   600px;   // Grands mobiles / tablette portrait petit
+$bp-tb:   768px;   // Tablette portrait
+$bp-lg:   960px;   // Tablette paysage / petit desktop
+$bp-xl:  1024px;   // Desktop standard
+$bp-2xl: 1280px;   // Grand desktop
+$bp-3xl: 1440px;   // Très grand desktop
+$bp-4xl: 1920px;   // Ultra wide
+
+// Alias sémantiques
+$mobile:  $bp-tb;   // ≤ 768px → mobile
+$tablet:  $bp-xl;   // ≤ 1024px → tablette
+$desktop: $bp-3xl;  // ≥ 1440px → grand desktop
+
+// ─── Mixins max-width (mobile-first inversé) ────────────
+@mixin xs {
+  @media (max-width: #{$bp-xs}) { @content; }
+}
+@mixin sm {
+  @media (max-width: #{$bp-sm}) { @content; }
+}
+@mixin md {
+  @media (max-width: #{$bp-md}) { @content; }
+}
+@mixin mobile {
+  @media (max-width: #{$bp-tb}) { @content; }
+}
+@mixin tablet {
+  @media (max-width: #{$bp-xl}) { @content; }
+}
+@mixin lg {
+  @media (max-width: #{$bp-lg}) { @content; }
+}
+@mixin xl {
+  @media (max-width: #{$bp-2xl}) { @content; }
+}
+@mixin xxl {
+  @media (max-width: #{$bp-3xl}) { @content; }
+}
+
+// ─── Mixins min-width (mobile-first) ────────────────────
+@mixin from-sm {
+  @media (min-width: #{$bp-sm + 1}) { @content; }
+}
+@mixin from-md {
+  @media (min-width: #{$bp-md + 1}) { @content; }
+}
+@mixin from-tb {
+  @media (min-width: #{$bp-tb + 1}) { @content; }
+}
+@mixin from-lg {
+  @media (min-width: #{$bp-lg + 1}) { @content; }
+}
+@mixin from-xl {
+  @media (min-width: #{$bp-xl + 1}) { @content; }
+}
+@mixin from-2xl {
+  @media (min-width: #{$bp-2xl + 1}) { @content; }
+}
+@mixin desktop {
+  @media (min-width: #{$bp-xl + 1}) { @content; }
+}
+@mixin large-desktop {
+  @media (min-width: #{$bp-3xl}) { @content; }
+}
+
+// ─── Mixins plage (between) ─────────────────────────────
+@mixin between-tb-lg {
+  @media (min-width: #{$bp-tb + 1}) and (max-width: #{$bp-lg}) { @content; }
+}
+@mixin between-lg-xl {
+  @media (min-width: #{$bp-lg + 1}) and (max-width: #{$bp-xl}) { @content; }
+}
+@mixin between-xl-2xl {
+  @media (min-width: #{$bp-xl + 1}) and (max-width: #{$bp-2xl}) { @content; }
+}
+
+// ─── Helpers grid responsive ────────────────────────────
+// Génère automatiquement une grille responsive
+// Usage: @include responsive-grid(4, 2, 1);
+//   → 4 colonnes desktop, 2 tablette, 1 mobile
+@mixin responsive-grid($desktop-cols: 4, $tablet-cols: 2, $mobile-cols: 1, $gap: 16px) {
+  display: grid;
+  gap: $gap;
+  grid-template-columns: repeat(#{$desktop-cols}, 1fr);
+
+  @include tablet {
+    grid-template-columns: repeat(#{$tablet-cols}, 1fr);
+  }
+  @include mobile {
+    grid-template-columns: repeat(#{$mobile-cols}, 1fr);
+  }
+}
+
+// Génère une grille flex responsive
+@mixin responsive-flex-grid($min-width: 220px, $gap: 16px) {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $gap;
+
+  > * {
+    flex: 1 1 $min-width;
+    min-width: 0;
+  }
+}

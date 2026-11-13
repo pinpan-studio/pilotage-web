@@ -1,0 +1,30 @@
+<div style="display:flex; flex-direction:column; margin:0; width:100%; height:100%; min-width:100%; min-height:100%;" class="dTheme route">
+  <div matPadding style="display:flex; flex-direction:column; justify-content:center; align-items:center; flex:1;">
+    @if (subTitle) {
+      <div class="mat-h3 capitalize" style="opacity: 0.7;">{{subTitle}}</div>
+    }
+    <div class="mat-h2 capitalize">{{title}}</div>
+    @if (message) {
+      <div class="mat-body-1"
+        style="max-width: 85%; line-height: 1.6; margin-top: 24px; color: rgba(255,255,255,0.8); text-align: center;">
+        @if (!isArray) {
+          <div style="white-space: pre-wrap;">{{message}}</div>
+        }
+        @if (isArray) {
+          <div>
+            @for (m of message; track m) {
+              <div style="margin-bottom: 12px; white-space: pre-wrap;">{{m}}</div>
+            }
+          </div>
+        }
+      </div>
+    }
+    @if (actionBtn) {
+      <div matPadding>
+        <button color="primary" (click)="goTo(actionBtn.link)" mat-flat-button mat-button>
+          <span class="mat-body-2 capitalize">{{actionBtn.label}}</span>
+        </button>
+      </div>
+    }
+  </div>
+</div>

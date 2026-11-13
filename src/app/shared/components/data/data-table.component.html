@@ -1,0 +1,153 @@
+<div class="dt" [class]="'dt dt--' + density()">
+  <!-- Barre d'outils / barre d'actions groupées -->
+  @if (selected().size) {
+    <div class="dt-bulk">
+      <button type="button" class="dt-icon" (click)="clearSel()" matTooltip="Désélectionner"><mat-icon>close</mat-icon></button>
+      <strong>{{ selected().size }} sélectionné(s)</strong>
+      @if (selected().size < filtered().length) {
+        <button type="button" class="dt-link" (click)="selectAllFiltered()">Sélectionner les {{ filtered().length }}</button>
+      }
+      <span class="spacer"></span>
+      @for (a of bulkActions(); track a.id) {
+        <button type="button" class="dt-bulk-btn" [class.danger]="a.tone === 'error'" (click)="runBulk(a)"><mat-icon>{{ a.icon }}</mat-icon><span>{{ a.label }}</span></button>
+      }
+    </div>
+  } @else {
+    <div class="dt-toolbar">
+      @if (title()) { <strong class="dt-title">{{ title() }}</strong><span class="dt-count">{{ filtered().length }}</span> }
+      @if (searchable()) {
+        <div class="dt-search"><mat-icon>search</mat-icon><input placeholder="Rechercher…" [value]="query()" (input)="query.set($any($event.target).value)" />
+          @if (query()) { <button type="button" (click)="query.set('')"><mat-icon>close</mat-icon></button> }</div>
+      }
+      <span class="spacer"></span>
+      <button type="button" class="dt-tool" [matMenuTriggerFor]="densityMenu" matTooltip="Densité"><mat-icon>density_medium</mat-icon></button>
+      <button type="button" class="dt-tool" [matMenuTriggerFor]="colMenu"><mat-icon>view_column</mat-icon><span>Colonnes</span>
+        @if (hidden().size) { <em>{{ hidden().size }}</em> }</button>
+      <button type="button" class="dt-tool" (click)="exportCsv()" matTooltip="Exporter en CSV"><mat-icon>download</mat-icon></button>
+    </div>
+  }
+  <mat-menu #colMenu="matMenu" class="m3-dropdown-menu">
+    @for (c of columns(); track c.key) {
+      <button mat-menu-item (click)="$event.stopPropagation(); !c.required && toggleCol(c.key)" [disabled]="c.required">
+        <mat-icon>{{ hidden().has(c.key) ? 'check_box_outline_blank' : 'check_box' }}</mat-icon>{{ c.label }}
+        @if (c.sticky) { <mat-icon class="dt-pin">push_pin</mat-icon> }
+      </button>
+    }
+    <button mat-menu-item (click)="resetCols()"><mat-icon>restart_alt</mat-icon>Réinitialiser</button>
+  </mat-menu>
+  <mat-menu #densityMenu="matMenu" class="m3-dropdown-menu">
+    @for (d of [['compact', 'Compacte', 'density_small'], ['normal', 'Normale', 'density_medium'], ['comfortable', 'Confortable', 'density_large']]; track d[0]) {
+      <button mat-menu-item (click)="density.set($any(d[0]))"><mat-icon>{{ density() === d[0] ? 'check' : d[2] }}</mat-icon>{{ d[1] }}</button>
+    }
+  </mat-menu>
+
+  <!-- Tableau -->
+  <div class="dt-scroll" [style.max-height]="maxHeight()">
+    <table [style.width.px]="tableWidth()" [style.min-width.%]="100">
+      <colgroup>
+        @if (selectable()) { <col style="width: 44px" /> }
+        @if (expandedTpl()) { <col style="width: 40px" /> }
+        @for (c of visibleCols(); track c.key) { <col [style.width.px]="widths()[c.key]" /> }
+      </colgroup>
+      <thead>
+        <tr>
+          @if (selectable()) {
+            <th class="tech sticky-s" style="left: 0">
+              <span class="dt-check" [class.on]="allOnPage()" [class.some]="someOnPage()" (click)="togglePage()" role="checkbox" [attr.aria-checked]="allOnPage()" aria-label="Tout sélectionner"></span>
+            </th>
+          }
+          @if (expandedTpl()) { <th class="tech sticky-s" [style.left.px]="selectable() ? 44 : 0"></th> }
+          @for (c of visibleCols(); track c.key) {
+            <th [class.sticky-s]="c.sticky === 'start'" [class.sticky-e]="c.sticky === 'end'" [class.edge-s]="c.key === lastStart()" [class.edge-e]="c.key === firstEnd()"
+              [style.left.px]="c.sticky === 'start' ? offsets()[c.key] : null" [style.right.px]="c.sticky === 'end' ? offsets()[c.key] : null"
+              [style.text-align]="align(c)" [class.sortable]="c.sortable !== false" [class.sorted]="sort()?.key === c.key"
+              (click)="toggleSort(c)" [attr.aria-sort]="sort()?.key === c.key ? (sort()!.dir === 'asc' ? 'ascending' : 'descending') : null">
+              <span class="th-in" [style.justify-content]="align(c) === 'right' ? 'flex-end' : align(c) === 'center' ? 'center' : null">
+                {{ c.label }}
+                @if (c.editable) { <mat-icon class="th-edit" matTooltip="Modifiable (double-clic)">edit</mat-icon> }
+                @if (c.sortable !== false) { <mat-icon class="th-sort">{{ sort()?.key === c.key ? (sort()!.dir === 'asc' ? 'arrow_upward' : 'arrow_downward') : 'unfold_more' }}</mat-icon> }
+              </span>
+              <span class="resizer" (pointerdown)="resizeStart(c, $event)" (click)="$event.stopPropagation()" (dblclick)="autoFit(c)" title="Glisser pour redimensionner · double-clic : ajuster"></span>
+            </th>
+          }
+        </tr>
+      </thead>
+      <tbody>
+        @for (r of pageRows(); track id(r)) {
+          <tr [class.sel]="selected().has(id(r))" [class.open]="expanded().has(id(r))" [class.clickable]="clickable()">
+            @if (selectable()) {
+              <td class="tech sticky-s" style="left: 0" (click)="toggleRow(r, $event)">
+                <span class="dt-check" [class.on]="selected().has(id(r))" role="checkbox" [attr.aria-checked]="selected().has(id(r))"></span>
+              </td>
+            }
+            @if (expandedTpl()) {
+              <td class="tech sticky-s" [style.left.px]="selectable() ? 44 : 0">
+                <button type="button" class="dt-exp" (click)="toggleExpand(r)" [attr.aria-expanded]="expanded().has(id(r))"><mat-icon>chevron_right</mat-icon></button>
+              </td>
+            }
+            @for (c of visibleCols(); track c.key) {
+              <td [class.sticky-s]="c.sticky === 'start'" [class.sticky-e]="c.sticky === 'end'" [class.edge-s]="c.key === lastStart()" [class.edge-e]="c.key === firstEnd()"
+                [style.left.px]="c.sticky === 'start' ? offsets()[c.key] : null" [style.right.px]="c.sticky === 'end' ? offsets()[c.key] : null"
+                [style.text-align]="align(c)" [class.editable]="!!c.editable" [class.edited]="isEdited(r, c)" (dblclick)="startEdit(r, c)" (click)="clickable() && !isEditing(r, c) && rowClick.emit(r)">
+                @if (isEditing(r, c)) {
+                  @if (c.editable === 'select') {
+                    <select class="dt-edit-input" [value]="value(r, c.key)" (change)="commitEdit(r, c, $any($event.target).value)" (blur)="cancelEdit()" (keydown.escape)="cancelEdit()">
+                      @for (o of c.options; track o.value) { <option [value]="o.value">{{ o.label }}</option> }
+                    </select>
+                  } @else {
+                    <input class="dt-edit-input" [type]="'text'" [attr.inputmode]="c.editable === 'number' ? 'decimal' : null" [value]="value(r, c.key) ?? ''"
+                      (keydown)="editKey(r, c, $event)" (blur)="commitEdit(r, c, $any($event.target).value)" [style.text-align]="align(c)" />
+                  }
+                } @else {
+                  @switch (c.type) {
+                    @case ('badge') {
+                      @if (display(r, c)) { <span class="dt-badge" [style.--tone]="'var(--' + (c.tone ? c.tone(r) : 'primary') + '-color)'">{{ display(r, c) }}</span> }
+                    }
+                    @case ('progress') {
+                      <span class="dt-progress"><i [style.width.%]="value(r, c.key)" [class.low]="value(r, c.key) < 30"></i></span><em class="dt-pct">{{ display(r, c) }}</em>
+                    }
+                    @case ('mono') { <code>{{ display(r, c) }}</code> }
+                    @default { <span class="dt-text">{{ display(r, c) || '—' }}</span> }
+                  }
+                }
+              </td>
+            }
+          </tr>
+          @if (expandedTpl() && expanded().has(id(r))) {
+            <tr class="dt-detail"><td [attr.colspan]="colSpan()"><div class="dt-detail-in">
+              <ng-container *ngTemplateOutlet="expandedTpl()!; context: { $implicit: r }" />
+            </div></td></tr>
+          }
+        } @empty {
+          <tr class="dt-empty"><td [attr.colspan]="colSpan()"><mat-icon>search_off</mat-icon>Aucun résultat @if (query()) { pour « {{ query() }} » }</td></tr>
+        }
+      </tbody>
+      @if (hasTotals() && pageRows().length) {
+        <tfoot>
+          <tr>
+            @if (selectable()) { <td class="tech sticky-s" style="left: 0"></td> }
+            @if (expandedTpl()) { <td class="tech sticky-s" [style.left.px]="selectable() ? 44 : 0"></td> }
+            @for (c of visibleCols(); track c.key; let first = $first) {
+              <td [class.sticky-s]="c.sticky === 'start'" [class.sticky-e]="c.sticky === 'end'" [class.edge-s]="c.key === lastStart()" [class.edge-e]="c.key === firstEnd()"
+                [style.left.px]="c.sticky === 'start' ? offsets()[c.key] : null" [style.right.px]="c.sticky === 'end' ? offsets()[c.key] : null" [style.text-align]="align(c)">
+                @if (c.total) { {{ fmtTotal(c) }} } @else if (first) { Total ({{ filtered().length }}) }
+              </td>
+            }
+          </tr>
+        </tfoot>
+      }
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  <div class="dt-foot">
+    <span>{{ filtered().length ? page() * pageSize() + 1 : 0 }}–{{ Math.min((page() + 1) * pageSize(), filtered().length) }} sur {{ filtered().length }}</span>
+    @if (selectable()) { <span class="muted hide-xs">· Maj+clic pour sélectionner une plage</span> }
+    <span class="spacer"></span>
+    <button type="button" class="dt-icon" (click)="page.set(0)" [disabled]="page() === 0"><mat-icon>first_page</mat-icon></button>
+    <button type="button" class="dt-icon" (click)="page.set(page() - 1)" [disabled]="page() === 0"><mat-icon>chevron_left</mat-icon></button>
+    <span class="dt-page">{{ page() + 1 }} / {{ pages() }}</span>
+    <button type="button" class="dt-icon" (click)="page.set(page() + 1)" [disabled]="page() >= pages() - 1"><mat-icon>chevron_right</mat-icon></button>
+    <button type="button" class="dt-icon" (click)="page.set(pages() - 1)" [disabled]="page() >= pages() - 1"><mat-icon>last_page</mat-icon></button>
+  </div>
+</div>

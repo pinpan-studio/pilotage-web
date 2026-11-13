@@ -1,0 +1,53 @@
+:host { display: block; }
+.spacer { flex: 1; }
+
+.uq-drop {
+  display: flex; flex-direction: column; align-items: center; gap: var(--space-1); padding: 26px var(--space-4); text-align: center; cursor: pointer; outline: none;
+  border: 2px dashed var(--border-color); border-radius: var(--r-l, 16px); background: var(--mat-sys-surface-container-high, var(--hover-bg)); transition: all 0.15s ease;
+  strong { font-size: 14.5px; color: var(--text-primary); }
+  span { font-size: 13px; color: var(--text-secondary); u { color: var(--primary-color); } }
+  small { font-size: 11.5px; color: var(--text-muted); margin-top: 2px; }
+  &:hover, &:focus-visible { border-color: var(--primary-color); }
+  &.over { border-color: var(--primary-color); border-style: solid; background: var(--primary-color-light); transform: scale(1.01); }
+}
+.uq-drop-ic { width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: var(--space-1);
+  background: var(--primary-color-light); color: var(--primary-color); mat-icon { font-size: 26px; width: 26px; height: 26px; } }
+
+.uq-rejected { display: flex; align-items: flex-start; gap: var(--space-3); margin-top: var(--space-3); padding: var(--space-3) var(--space-3); border-radius: var(--radius-md); font-size: 12.5px;
+  background: var(--error-color-light); color: var(--error-color-text, var(--error-color));
+  > mat-icon { font-size: 18px; width: 18px; height: 18px; } > div { flex: 1; }
+  button { border: none; background: none; color: inherit; cursor: pointer; padding: 0; display: flex; mat-icon { font-size: 18px; width: 18px; height: 18px; } } }
+
+.uq-summary { display: flex; align-items: center; gap: var(--space-2); margin-top: var(--space-4); flex-wrap: wrap; }
+.uq-sum-text { display: flex; flex-direction: column;
+  strong { font-size: 13.5px; } span { font-size: 12px; color: var(--text-muted); em { font-style: normal; color: var(--error-color); } } }
+.uq-link { display: inline-flex; align-items: center; gap: var(--space-1); border: none; background: none; color: var(--primary-color); font: 500 12.5px 'Inter', sans-serif; cursor: pointer;
+  mat-icon { font-size: 16px; width: 16px; height: 16px; } }
+.uq-total { height: 4px; margin: var(--space-2) 0 var(--space-2); border-radius: 2px; background: var(--hover-bg); overflow: hidden;
+  i { display: block; height: 100%; background: var(--primary-color); transition: width 0.2s ease; &.err { background: var(--warning-color); } } }
+
+.uq-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); max-height: 360px; overflow-y: auto; }
+.uq-item { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-2) var(--space-3) var(--space-3); border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--card-bg); animation: uq-in 0.2s ease;
+  &[data-status='error'] { border-color: color-mix(in srgb, var(--error-color) 40%, var(--border-color)); }
+  &[data-status='canceled'] { opacity: 0.6; } }
+@keyframes uq-in { from { opacity: 0; transform: translateY(-4px); } }
+.uq-ic { width: 38px; height: 38px; flex-shrink: 0; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; background: var(--hover-bg); color: var(--text-secondary);
+  mat-icon { font-size: 20px; width: 20px; height: 20px; } }
+[data-status='done'] .uq-ic { background: var(--success-color-light); color: var(--success-color); }
+[data-status='error'] .uq-ic { background: var(--error-color-light); color: var(--error-color); }
+.uq-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+.uq-line { display: flex; align-items: baseline; gap: var(--space-2); }
+.uq-name { flex: 1; min-width: 0; font-size: 13.5px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.uq-size { font-size: 11.5px; color: var(--text-muted); white-space: nowrap; }
+.uq-row { display: flex; align-items: center; gap: var(--space-3); }
+.uq-bar { flex: 1; height: 5px; border-radius: var(--radius-xs); background: var(--hover-bg); overflow: hidden;
+  i { display: block; height: 100%; border-radius: var(--radius-xs); background: var(--primary-color); transition: width 0.16s linear; }
+  &.idle { background: repeating-linear-gradient(-45deg, var(--hover-bg) 0 6px, var(--border-color) 6px 12px); background-size: 17px 17px; animation: uq-wait 1s linear infinite; } }
+@keyframes uq-wait { to { background-position: 17px 0; } }
+.uq-state { display: inline-flex; align-items: center; gap: var(--space-1); font-size: 12px; color: var(--text-muted); white-space: nowrap; font-variant-numeric: tabular-nums;
+  mat-icon { font-size: 15px; width: 15px; height: 15px; }
+  &.ok { color: var(--success-color-text, var(--success-color)); }
+  &.err { color: var(--error-color); white-space: normal; } }
+.uq-actions { display: flex;
+  button { width: 30px; height: 30px; border: none; border-radius: 50%; background: transparent; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; justify-content: center;
+    mat-icon { font-size: 18px; width: 18px; height: 18px; } &:hover { background: var(--hover-bg); color: var(--text-primary); } } }

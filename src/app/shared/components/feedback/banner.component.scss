@@ -1,0 +1,32 @@
+:host { display: block; }
+
+.bn {
+  --c: var(--info-color);
+  display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-3) var(--space-3) var(--space-4); border-radius: var(--r-m, 12px);
+  background: color-mix(in srgb, var(--c) 12%, var(--card-bg)); color: var(--text-primary);
+  border: 1px solid color-mix(in srgb, var(--c) 30%, transparent); animation: bn-in 0.25s ease;
+  &.compact { padding: 7px var(--space-2) 7px var(--space-4); border-radius: var(--radius-md); .bn-text { flex-direction: row; gap: var(--space-2); flex-wrap: wrap; align-items: baseline; } }
+}
+@keyframes bn-in { from { opacity: 0; transform: translateY(-6px); } }
+.bn--success { --c: var(--success-color); }
+.bn--warning { --c: var(--warning-color); }
+.bn--error { --c: var(--error-color); }
+.bn--maintenance { --c: var(--purple-color, #8b5cf6); }
+.bn--offline { --c: var(--error-color); background: var(--error-color); color: #fff; border-color: transparent;
+  .bn-ic, .bn-text span { color: #fff; } .bn-action { background: rgba(255, 255, 255, 0.2); color: #fff; } .bn-close { color: #fff; } }
+.bn--promo { --c: var(--primary-color); background: linear-gradient(90deg, var(--primary-color), var(--purple-color, #8b5cf6)); color: #fff; border-color: transparent;
+  .bn-ic, .bn-text span { color: #fff; } .bn-action { background: #fff; color: var(--primary-color); } .bn-close { color: #fff; } }
+
+.bn-ic { flex-shrink: 0; color: var(--c); &.spin { animation: bn-spin 1.4s linear infinite; } }
+@keyframes bn-spin { to { transform: rotate(360deg); } }
+.bn-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; font-size: 13px;
+  strong { font-weight: 600; font-size: 13.5px; }
+  span { color: var(--text-secondary); } }
+.bn-action { flex-shrink: 0; height: 32px; padding: 0 var(--space-4); border-radius: var(--radius-lg); border: none; cursor: pointer; font: 600 12.5px 'Inter', sans-serif;
+  background: color-mix(in srgb, var(--c) 18%, transparent); color: var(--text-primary);
+  &:hover { filter: brightness(0.95); } }
+.bn-close { flex-shrink: 0; width: 30px; height: 30px; border: none; border-radius: 50%; background: transparent; color: var(--text-secondary); cursor: pointer;
+  display: flex; align-items: center; justify-content: center; mat-icon { font-size: 18px; width: 18px; height: 18px; }
+  &:hover { background: color-mix(in srgb, currentColor 12%, transparent); } }
+
+@media (max-width: 599.98px) { .bn { flex-wrap: wrap; align-items: flex-start; } .bn-text { flex: 1 1 calc(100% - 80px); } .bn-action { margin-left: var(--space-10); } }

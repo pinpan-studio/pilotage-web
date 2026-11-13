@@ -1,0 +1,48 @@
+<div class="m3-paginator">
+  <div class="paginator-size">
+    <span class="paginator-label">Éléments par page:</span>
+    <div class="select-wrapper">
+      <select [value]="itemPerPage()" (change)="onPageSizeChange($event)">
+        @for (opt of pageSizeOptions(); track opt) {
+          <option [value]="opt">{{ opt }}</option>
+        }
+      </select>
+      <mat-icon class="select-arrow">arrow_drop_down</mat-icon>
+    </div>
+  </div>
+
+  <span class="paginator-range">
+    {{ rangeStart() }}–{{ rangeEnd() }} sur {{ total() }} éléments
+  </span>
+
+  <div class="paginator-buttons">
+    <button mat-icon-button [disabled]="page() === 1" (click)="changePage(1)" matTooltip="Première page">
+      <mat-icon>first_page</mat-icon>
+    </button>
+    <button mat-icon-button [disabled]="page() === 1" (click)="changePage(page() - 1)" matTooltip="Précédent">
+      <mat-icon>chevron_left</mat-icon>
+    </button>
+
+    @for (p of visiblePages(); track $index) {
+      @if (p === '...') {
+        <span class="paginator-ellipsis">...</span>
+      } @else {
+        <button
+          mat-icon-button
+          class="page-num-btn"
+          [class.active]="p === page()"
+          (click)="changePage($any(p))"
+        >
+          {{ p }}
+        </button>
+      }
+    }
+
+    <button mat-icon-button [disabled]="page() === nbPage()" (click)="changePage(page() + 1)" matTooltip="Suivant">
+      <mat-icon>chevron_right</mat-icon>
+    </button>
+    <button mat-icon-button [disabled]="page() === nbPage()" (click)="changePage(nbPage())" matTooltip="Dernière page">
+      <mat-icon>last_page</mat-icon>
+    </button>
+  </div>
+</div>

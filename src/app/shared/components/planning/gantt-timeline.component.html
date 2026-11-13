@@ -1,0 +1,76 @@
+<div class="pl-stack">
+  <app-planning-toolbar [searchable]="searchable()" [filters]="filters()" [lateToggle]="lateToggle()" [lateCount]="lateCount()" [(state)]="filterState">
+    <div toolbarEnd class="gt-end">
+      @if (showZoom()) {
+        <div class="pl-segmented">
+          @for (z of zooms; track z.key) { <button type="button" [class.active]="zoom() === z.key" (click)="zoom.set(z.key)">{{ z.label }}</button> }
+        </div>
+      }
+      @if (showToday()) { <button type="button" class="pl-text-btn" (click)="scrollToToday()"><mat-icon>today</mat-icon> Aujourd'hui</button> }
+    </div>
+  </app-planning-toolbar>
+
+  <div class="gt-scroller" #scroller [style.--dw.px]="dayWidth()">
+    <div class="gt-table" [style.width.px]="days().length * dayWidth() + 220">
+      <!-- En-tête -->
+      <div class="gt-head">
+        <div class="gt-corner">{{ rowLabel() }}</div>
+        <div class="gt-axis">
+          <div class="gt-months">
+            @for (m of months(); track m.left) { <div class="gt-month" [style.left.px]="m.left" [style.width.px]="m.width"><span>{{ m.label }}</span></div> }
+          </div>
+          <div class="gt-days">
+            @for (d of days(); track $index) {
+              <div class="gt-day" [class.weekend]="d.weekend" [class.today]="d.today" [style.left.px]="$index * dayWidth()">
+                @if (zoom() === 'day') { <span class="dn">{{ d.date | date: 'EEEEE' }}</span><span class="dd">{{ d.date | date: 'd' }}</span> }
+                @else if (zoom() === 'week' || d.monday) { <span class="dd">{{ d.date | date: 'd' }}</span> }
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+
+      <!-- Lignes -->
+      <div class="gt-body">
+        @for (row of rows(); track row.key) {
+          <div class="gt-row" [style.height.px]="row.tracks * trackHeight + 12">
+            <div class="gt-label">
+              @if (row.icon) { <span class="gt-badge" [style.--tone]="row.color || 'var(--primary-color)'"><mat-icon>{{ row.icon }}</mat-icon></span> }
+              @else { <span class="gt-badge" [style.--tone]="row.color || 'var(--primary-color)'">{{ initials(row.label) }}</span> }
+              <div class="gt-label-text">
+                <strong>{{ row.label }}</strong>
+                <span>
+                  @if (row.subtitle) { {{ row.subtitle }} }
+                  @if (row.late) { <em class="late">{{ row.late }} en retard</em> }
+                </span>
+              </div>
+            </div>
+            <div class="gt-lane">
+              @for (d of days(); track $index) {
+                @if (d.weekend || d.today) { <div class="gt-shade" [class.today]="d.today" [style.left.px]="$index * dayWidth()"></div> }
+              }
+              @for (b of row.bars; track b.item.id) {
+                @if (b.overdueWidth) {
+                  <div class="gt-overdue" [style.left.px]="b.overdueLeft" [style.width.px]="b.overdueWidth" [style.top.px]="6 + b.track * trackHeight"
+                    (click)="itemClick.emit(b.item)" matTooltip="Échéance dépassée"></div>
+                }
+                <div class="gt-bar" [class.done]="b.item.done" [style.--tone]="color(b.item)" [style.left.px]="b.left" [style.width.px]="b.width"
+                  [style.top.px]="6 + b.track * trackHeight" (click)="itemClick.emit(b.item)"
+                  [matTooltip]="b.item.title + (b.item.assignee ? ' · ' + b.item.assignee : '')">
+                  @if (b.item.progress) { <div class="gt-fill" [style.width.%]="b.item.progress"></div> }
+                  <span class="gt-bar-text">@if (b.item.ref) {<b>{{ b.item.ref }}</b>} {{ b.item.title }}</span>
+                </div>
+                @if (b.dueLeft !== null) {
+                  <div class="gt-due" [class.late]="b.late" [style.left.px]="b.dueLeft" [style.top.px]="3 + b.track * trackHeight"></div>
+                }
+              }
+            </div>
+          </div>
+        } @empty {
+          <div class="gt-empty">Aucun élément à afficher</div>
+        }
+        @if (showToday()) { <div class="gt-today" [style.left.px]="todayLeft() + 220"></div> }
+      </div>
+    </div>
+  </div>
+</div>

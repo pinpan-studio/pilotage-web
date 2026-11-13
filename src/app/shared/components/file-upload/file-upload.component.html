@@ -1,0 +1,48 @@
+@if (mode != 'photo') {
+  <div class="form-field">
+    <div class="field-box upload-box" [class.is-disabled]="disabled" [class.has-file]="fichier?._id"
+      (click)="!fichier?._id && selectFile()">
+      @if (inProgress) {
+        <mat-spinner mode="indeterminate" diameter="20"></mat-spinner>
+      } @else {
+        <mat-icon>{{ fichier?._id ? 'description' : 'attach_file' }}</mat-icon>
+      }
+      @if (fichier?._id) {
+        <span class="file-name" [title]="fichier?.nom">{{ fichier?.nom }}</span>
+        <span class="file-size">{{ fichier?.taille / 1000000 | number:'1.0-2' }} Mo</span>
+        <button mat-icon-button type="button" [matMenuTriggerFor]="menuFile" (click)="$event.stopPropagation()">
+          <mat-icon>more_vert</mat-icon>
+        </button>
+        <mat-menu #menuFile="matMenu" xPosition="before" class="m3-dropdown-menu">
+          <button mat-menu-item (click)="openFile(fichier)"><mat-icon>download</mat-icon> Télécharger</button>
+          <button mat-menu-item [disabled]="disabled" (click)="deleteSelectedFile(fichier)"><mat-icon>backspace</mat-icon> Supprimer</button>
+        </mat-menu>
+      } @else {
+        <span class="file-placeholder">{{ placeholder || 'Choisir un fichier…' }}</span>
+        <span class="browse">Parcourir</span>
+      }
+    </div>
+  </div>
+}
+
+@if (mode == 'photo') {
+  <div class="photo-upload">
+    @if (fichier?._id || fichier?.url) {
+      <div class="photo-frame">
+        <img [src]="fichier.url" alt="" />
+        <button mat-mini-fab class="photo-delete" color="warn" matTooltip="Supprimer" [disabled]="disabled" (click)="deleteSelectedFile(fichier)">
+          <mat-icon>delete</mat-icon>
+        </button>
+      </div>
+    } @else {
+      <button type="button" class="photo-frame empty" [class.is-disabled]="disabled" [disabled]="disabled" (click)="selectFile()">
+        @if (inProgress) {
+          <mat-spinner mode="indeterminate" diameter="24"></mat-spinner>
+        } @else {
+          <mat-icon>add_a_photo</mat-icon>
+        }
+        <span>{{ placeholder || 'Photo' }}</span>
+      </button>
+    }
+  </div>
+}

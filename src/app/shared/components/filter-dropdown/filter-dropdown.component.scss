@@ -1,0 +1,354 @@
+// ═══════════════════════════════════════════════════════════════════════════
+//  FilterDropdown / FilterSelect — Déclencheur pilule + Popover CDK Overlay recherchable
+// ═══════════════════════════════════════════════════════════════════════════
+
+app-filter-dropdown,
+pq-filter-select,
+app-filter-select {
+  display: inline-block;
+}
+
+// ─── Déclencheur ─────────────────────────────────────────────────────────
+.filter-dropdown-btn,
+.pq-fs-trigger {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: var(--space-1) !important;
+  height: 36px !important;
+  padding: 0 var(--space-3) 0 var(--space-4) !important;
+  min-width: unset !important;
+  border: 1px solid transparent !important;
+  border-radius: var(--radius-full) !important;
+  background: transparent !important;
+  font-family: 'Outfit', sans-serif !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: var(--mat-sys-on-surface-variant, var(--text-secondary, #475569)) !important;
+  cursor: pointer !important;
+  white-space: nowrap !important;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease !important;
+
+  .btn-content {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+    white-space: nowrap;
+  }
+
+  &:hover:not([disabled]) {
+    background: var(--hover-bg, #f1f5f9) !important;
+  }
+
+  .prefix,
+  .pq-fs-prefix {
+    opacity: 0.7;
+    font-weight: 500;
+  }
+
+  .label,
+  .pq-fs-label {
+    color: var(--mat-sys-on-surface, var(--text-primary, #0f172a));
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .count,
+  .pq-fs-badge {
+    color: var(--mat-sys-on-surface-variant, var(--text-secondary, #64748b));
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    margin-left: 2px;
+  }
+
+  .arrow-icon,
+  .pq-fs-caret {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    opacity: 0.7;
+    margin: 0;
+    transition: transform 0.2s ease;
+  }
+
+  .pq-fs-dot {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: rgba(79, 70, 229, 0.15);
+    margin-left: 2px;
+    transition: background 0.15s ease;
+
+    mat-icon {
+      font-size: 11px;
+      width: 11px;
+      height: 11px;
+      color: var(--mat-sys-primary, var(--primary-color, #4f46e5));
+    }
+
+    &:hover {
+      background: rgba(239, 68, 68, 0.2);
+      mat-icon {
+        color: #ef4444;
+      }
+    }
+  }
+
+  &--active,
+  &.active {
+    border-color: var(--mat-sys-primary, var(--primary-color, #4f46e5)) !important;
+    color: var(--mat-sys-primary, var(--primary-color, #4f46e5)) !important;
+    background: var(--primary-color-light, rgba(79, 70, 229, 0.1)) !important;
+
+    .label,
+    .pq-fs-label {
+      color: var(--mat-sys-primary, var(--primary-color, #4f46e5)) !important;
+      font-weight: 700 !important;
+    }
+
+    .arrow-icon,
+    .pq-fs-caret {
+      opacity: 1 !important;
+      color: var(--mat-sys-primary, var(--primary-color, #4f46e5)) !important;
+    }
+  }
+
+  &.standalone {
+    background: var(--mat-sys-surface-container-high, var(--hover-bg, #f8fafc)) !important;
+    border: 1px solid var(--border-color, #e2e8f0) !important;
+    height: 44px !important;
+    border-radius: var(--r-m, 12px) !important;
+
+    &:hover:not([disabled]) {
+      background: var(--mat-sys-surface-container-highest, var(--hover-bg, #f1f5f9)) !important;
+    }
+  }
+
+  &[disabled] {
+    opacity: 0.5;
+    cursor: not-allowed !important;
+  }
+}
+
+// ─── Popover CDK Overlay ─────────────────────────────────────────────────
+.pq-fs-panel {
+  display: flex;
+  flex-direction: column;
+  width: 300px;
+  max-width: calc(100vw - 24px);
+  max-height: min(420px, calc(100vh - 48px));
+  background: var(--card-bg, #ffffff);
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--elevation-4);
+  overflow: hidden;
+  animation: pq-fs-in 0.12s ease-out;
+  z-index: 1000;
+}
+
+@keyframes pq-fs-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.pq-fs-search {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-3);
+  border-bottom: 1px solid var(--border-color, #eef2f7);
+  flex-shrink: 0;
+
+  > mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    color: var(--text-muted, #94a3b8);
+    flex-shrink: 0;
+  }
+
+  input {
+    flex: 1;
+    min-width: 0;
+    border: none;
+    outline: none;
+    background: transparent;
+    font-family: inherit;
+    font-size: 13px;
+    color: var(--text-primary, #0f172a);
+
+    &::placeholder {
+      color: var(--text-muted, #94a3b8);
+    }
+  }
+
+  .pq-fs-search-clear {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    padding: 2px;
+    color: var(--text-muted, #94a3b8);
+
+    &:hover {
+      color: var(--text-primary, #0f172a);
+    }
+
+    mat-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+    }
+  }
+}
+
+.pq-fs-list {
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--space-2);
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: var(--border-color, #cbd5e1);
+    border-radius: var(--radius-sm);
+  }
+}
+
+.pq-fs-opt {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  text-align: left;
+  padding: var(--space-2) var(--space-3);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  cursor: pointer;
+  font-family: 'Outfit', sans-serif;
+  font-size: 13px;
+  color: var(--text-primary, #0f172a);
+  transition: background 0.1s ease;
+
+  &:hover {
+    background: var(--hover-bg, #f1f5f9);
+  }
+
+  .pq-fs-opt-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+  }
+
+  .pq-fs-opt-label {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .pq-fs-opt-count {
+    flex-shrink: 0;
+    min-width: 20px;
+    padding: 1px var(--space-2);
+    border-radius: var(--radius-full);
+    background: var(--mat-sys-surface-container-high, #eef2f7);
+    color: var(--text-secondary, #64748b);
+    font-size: 11px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+  }
+
+  .pq-fs-check {
+    flex-shrink: 0;
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    color: var(--mat-sys-primary, var(--primary-color, #4f46e5));
+  }
+
+  &--sel {
+    background: var(--primary-color-light, rgba(79, 70, 229, 0.1));
+    font-weight: 700;
+
+    .pq-fs-opt-count {
+      background: rgba(79, 70, 229, 0.16);
+      color: var(--mat-sys-primary, var(--primary-color, #4f46e5));
+    }
+  }
+
+  &--all {
+    font-weight: 700;
+    border-bottom: 1px solid var(--border-color, #eef2f7);
+    border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+    margin-bottom: var(--space-1);
+  }
+}
+
+.pq-fs-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-6) var(--space-4);
+  color: var(--text-muted, #94a3b8);
+  font-size: 12px;
+  text-align: center;
+
+  mat-icon {
+    font-size: 24px;
+    width: 24px;
+    height: 24px;
+    opacity: 0.6;
+  }
+}
+
+.pq-fs-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-3);
+  border: none;
+  border-top: 1px solid var(--border-color, #eef2f7);
+  background: transparent;
+  cursor: pointer;
+  font-family: 'Outfit', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted, #94a3b8);
+  flex-shrink: 0;
+  transition: color 0.15s ease, background 0.15s ease;
+
+  &:hover {
+    color: #ef4444;
+    background: var(--hover-bg, #f8fafc);
+  }
+
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+  }
+}

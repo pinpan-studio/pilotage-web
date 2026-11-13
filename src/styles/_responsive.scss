@@ -1,0 +1,457 @@
+// ═══════════════════════════════════════════════════════════
+//  _responsive.scss — Règles globales responsive Admin Lookas
+//  Import via styles.scss
+// ═══════════════════════════════════════════════════════════
+@import 'breakpoints';
+
+// ─── 1. Reset box-model et overflow de base ─────────────
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
+// ─── 2. Toolbar responsive ──────────────────────────────
+mat-toolbar.mat-toolbar {
+  flex-shrink: 0;
+
+  @include mobile {
+    padding: 0 var(--space-2) !important;
+  }
+}
+
+// Logo adaptatif dans la toolbar
+.logo img,
+mat-toolbar img {
+  @include mobile {
+    height: 48px !important;
+    max-height: 48px !important;
+  }
+  @include xs {
+    height: 36px !important;
+    max-height: 36px !important;
+  }
+}
+
+// Texte du module dans la toolbar — masqué sur mobile
+mat-toolbar .module-name {
+  @include mobile {
+    display: none;
+  }
+}
+
+// ─── 3. Sidenav & conteneur principal ──────────────────
+mat-sidenav-container {
+  &.mat-sidenav-container {
+    height: 100%;
+  }
+}
+
+mat-sidenav.mat-sidenav {
+  @include mobile {
+    width: min(270px, 85vw) !important;
+  }
+}
+
+// Contenu principal ne déborde jamais
+.mat-drawer-content,
+.mat-sidenav-content {
+  overflow-x: hidden;
+  min-width: 0;
+}
+
+// ─── 4. Conteneurs de page ──────────────────────────────
+// Padding adaptatif pour tous les conteneurs de page principaux
+.dashboard-container,
+.dashboard-shell,
+.list-content-wrapper,
+.page-container,
+.content-wrapper {
+  box-sizing: border-box;
+
+  @include lg {
+    padding: var(--space-5) !important;
+  }
+  @include mobile {
+    padding: var(--space-4) !important;
+  }
+  @include sm {
+    padding: var(--space-3) !important;
+  }
+  @include xs {
+    padding: var(--space-2) !important;
+  }
+}
+
+// ─── 5. En-têtes de page (header bars) ──────────────────
+.dashboard-header-bar,
+.list-header-bar,
+.page-header-bar {
+  flex-wrap: wrap;
+  gap: var(--space-3);
+
+  @include mobile {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+  }
+
+  .dashboard-title,
+  .list-title,
+  .page-title {
+    @include mobile {
+      font-size: 1.35rem !important;
+    }
+    @include sm {
+      font-size: 1.2rem !important;
+    }
+  }
+
+  // Boutons d'actions header
+  .header-actions {
+    @include mobile {
+      width: 100%;
+      flex-wrap: wrap;
+      gap: var(--space-2) !important;
+    }
+    @include sm {
+      button {
+        flex: 1 1 auto;
+        min-width: 0;
+        font-size: 0.75rem;
+      }
+    }
+  }
+}
+
+// ─── 6. Grilles KPI et métriques ────────────────────────
+// Tous les conteneurs de KPI cards
+.kpis-row,
+.metrics-row,
+.metrics-grid > .mat-grid-list,
+[class*='kpi-row'],
+[class*='metrics-row'] {
+  flex-wrap: wrap !important;
+  gap: var(--space-4);
+
+  > .mat-mdc-card,
+  > mat-card,
+  > [class*='kpi-card'],
+  > [class*='metric-card'] {
+    @include mobile {
+      flex: 1 1 calc(50% - 8px) !important;
+      min-width: 160px;
+    }
+    @include sm {
+      flex: 1 1 100% !important;
+    }
+  }
+}
+
+// Grid cols via Angular Material (fxFlex)
+// Quand utilisés dans des row wrap, on force le wrap adaptatif
+[fxlayout="row wrap"] > [fxflex],
+[fxLayout="row wrap"] > [fxFlex] {
+  @include mobile {
+    flex: 1 1 calc(50% - 8px) !important;
+    max-width: calc(50% - 8px) !important;
+    min-width: 0 !important;
+  }
+  @include sm {
+    flex: 1 1 100% !important;
+    max-width: 100% !important;
+  }
+}
+
+// ─── 7. Cartes Material ─────────────────────────────────
+mat-card.mat-mdc-card,
+.mat-mdc-card {
+  min-width: 0;
+  word-break: break-word;
+  overflow: hidden;
+}
+
+// ─── 8. Zones de filtre et barre de recherche ───────────
+.search-input-wrapper,
+.search-zone,
+.filter-bar,
+.filters-container {
+  @include mobile {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+}
+
+// Barre de recherche dans toolbar
+.search-zone {
+  @include mobile {
+    max-width: 280px !important;
+    width: 100% !important;
+  }
+  @include sm {
+    max-width: 200px !important;
+  }
+}
+
+// ─── 9. Tableaux — scroll horizontal isolé ──────────────
+.table-container-card,
+.mat-table-wrapper,
+[class*='table-container'],
+[class*='table-wrapper'] {
+  overflow: hidden;
+  min-width: 0;
+}
+
+// Wrap scrollable autour des mat-table sur mobile
+.mat-mdc-table,
+table.mat-mdc-table {
+  @include mobile {
+    min-width: 600px;
+  }
+}
+
+// Conteneur parent avec scroll horizontal
+.table-scroll-container {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  width: 100%;
+
+  .mat-mdc-table,
+  table.mat-mdc-table {
+    min-width: 600px;
+  }
+}
+
+// Cellules de tableaux ne débordent pas
+td.mat-mdc-cell,
+th.mat-mdc-header-cell {
+  word-break: break-word;
+
+  @include mobile {
+    padding: var(--space-3) var(--space-2) !important;
+    font-size: 0.8rem !important;
+  }
+}
+
+// ─── 10. Formulaires ─────────────────────────────────────
+// Champs de formulaire toujours pleine largeur sur mobile
+mat-form-field {
+  @include mobile {
+    width: 100% !important;
+  }
+}
+
+// Grilles de formulaires (fxLayout="row") → colonne sur mobile
+.form-row,
+[class*='form-grid'],
+[class*='form-row'] {
+  @include mobile {
+    flex-direction: column !important;
+
+    > * {
+      width: 100% !important;
+      flex: 1 1 100% !important;
+      max-width: 100% !important;
+    }
+  }
+}
+
+// ─── 11. Dialogues / Modales ─────────────────────────────
+.mat-mdc-dialog-container {
+  @include mobile {
+    max-width: 95vw !important;
+    margin: var(--space-2) !important;
+  }
+}
+
+.cdk-overlay-pane.mat-mdc-dialog-panel {
+  @include mobile {
+    max-width: 95vw !important;
+    width: 95vw !important;
+  }
+}
+
+// ─── 12. Tabs Material ───────────────────────────────────
+.mat-mdc-tab-group {
+  @include mobile {
+    overflow-x: auto;
+  }
+}
+
+.mat-mdc-tab-header {
+  @include mobile {
+    overflow-x: auto;
+  }
+}
+
+// ─── 13. Chips ───────────────────────────────────────────
+.mat-mdc-chip-set {
+  flex-wrap: wrap;
+}
+
+// ─── 14. Grilles de contenu (analytics, charts) ─────────
+.charts-metrics-container,
+.widgets-container,
+.analytics-row,
+.lower-row {
+  @include lg {
+    flex-direction: column !important;
+    gap: var(--space-5);
+  }
+}
+
+// ─── 15. Cards d'analyse / analytics cards ───────────────
+.analytics-card,
+.lower-card,
+.charts-panel-card,
+.operations-panel-card,
+.widget-metric-card,
+.timeline-panel-card,
+.executive-summary-card,
+.alerts-panel-card {
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+
+  @include mobile {
+    padding: var(--space-4) !important;
+  }
+  @include sm {
+    padding: var(--space-3) !important;
+  }
+}
+
+// ─── 16. Kanban board ────────────────────────────────────
+.kanban-scroll-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  width: 100%;
+  padding-bottom: var(--space-2);
+}
+
+.kanban-board {
+  min-width: 0;
+}
+
+// ─── 17. Pipeline section ────────────────────────────────
+.pipeline-section {
+  @include mobile {
+    padding: var(--space-4) !important;
+  }
+}
+
+// ─── 18. Cartes d'éléments de liste ──────────────────────
+.cards-grid,
+.card-grid {
+  @include mobile {
+    row-gap: var(--space-3) !important;
+    column-gap: var(--space-3) !important;
+  }
+}
+
+.order-card-item,
+.candidate-card-item,
+.store-card-item,
+.client-card-item {
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+// ─── 19. Sidenav mini ────────────────────────────────────
+.side-nav-mini {
+  @include mobile {
+    padding-top: var(--space-3);
+    gap: var(--space-2);
+  }
+}
+
+.side-nav-item {
+  @include mobile {
+    width: 42px;
+    height: 42px;
+  }
+}
+
+// ─── 20. Expansion panels responsive ────────────────────
+.mat-expansion-panel-header {
+  @include mobile {
+    padding: 0 var(--space-4) !important;
+    height: auto !important;
+    min-height: 48px;
+  }
+}
+
+.mat-expansion-panel-body {
+  @include mobile {
+    padding: 0 var(--space-4) var(--space-3) !important;
+  }
+}
+
+// ─── 21. Paginator ───────────────────────────────────────
+.mat-mdc-paginator {
+  @include mobile {
+    flex-wrap: wrap;
+
+    .mat-mdc-paginator-range-label {
+      order: -1;
+      width: 100%;
+      text-align: center;
+      margin: var(--space-1) 0;
+    }
+  }
+}
+
+// ─── 22. Button toggle groups ────────────────────────────
+.mat-button-toggle-group {
+  @include sm {
+    flex-wrap: wrap;
+  }
+}
+
+// ─── 23. Section headers  ────────────────────────────────
+.section-header {
+  @include mobile {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: var(--space-2);
+  }
+}
+
+// ─── 24. Toolbar overflow protection ─────────────────────
+// Les toolbars ne débordent jamais horizontalement
+mat-toolbar,
+.mat-toolbar {
+  overflow: hidden;
+  min-width: 0;
+}
+
+// ─── 25. Images et médias responsifs ─────────────────────
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+// ─── 26. Overflow protection globale ─────────────────────
+// Empêche tout débordement dans les conteneurs principaux
+app-root,
+app-main,
+.route {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
+// ─── 27. Espacement de section adaptatif ─────────────────
+.section-gap {
+  @include mobile {
+    gap: var(--space-4) !important;
+  }
+  @include sm {
+    gap: var(--space-3) !important;
+  }
+}

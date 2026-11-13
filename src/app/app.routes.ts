@@ -11,10 +11,10 @@ const connecte: CanActivateFn = async () => {
 };
 
 export const routes: Routes = [
-  { path: 'connexion', title: 'Connexion — Pilotage', loadComponent: () => import('./pages/connexion').then((m) => m.Connexion) },
-  { path: '', canActivate: [connecte], children: [
-    { path: '', title: 'Portefeuille — Pilotage', loadComponent: () => import('./pages/portefeuille').then((m) => m.Portefeuille) },
-    { path: 'projets/:code', loadComponent: () => import('./pages/projet').then((m) => m.Projet), children: [
+  { path: 'connexion', title: 'Connexion — Pilotage', loadComponent: () => import('./pages/connexion/connexion').then((m) => m.Connexion) },
+  { path: '', canActivate: [connecte], loadComponent: () => import('./coquille/coquille').then((m) => m.Coquille), children: [
+    { path: '', title: 'Portefeuille — Pilotage', data: { titre: 'Portefeuille' }, loadComponent: () => import('./pages/portefeuille').then((m) => m.Portefeuille) },
+    { path: 'projets/:code', data: { titre: 'Projet' }, loadComponent: () => import('./pages/projet').then((m) => m.Projet), children: [
       { path: '', pathMatch: 'full', redirectTo: 'synthese' },
       { path: 'synthese', title: 'Synthèse — Pilotage', loadComponent: () => import('./pages/synthese').then((m) => m.Synthese) },
       { path: 'fonctionnalites', title: 'Fonctionnalités — Pilotage', loadComponent: () => import('./pages/fonctionnalites').then((m) => m.Fonctionnalites) },

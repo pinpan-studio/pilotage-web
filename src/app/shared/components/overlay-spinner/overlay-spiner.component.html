@@ -1,0 +1,8 @@
+<!-- Overlay de Connexion -->
+@if (progress.loading) {
+  <div class="mat-overlay-spinner" style="display:flex; flex-direction:column; justify-content:center; align-items:center;">
+    <mat-spinner diameter="60"></mat-spinner>
+    <div class="mat-body-2 mat-padding-small">{{progress.label}}</div>
+  </div>
+}
+<!-- Fin Overlay -->

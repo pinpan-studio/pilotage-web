@@ -1,0 +1,29 @@
+@import 'planning-shared';
+
+:host { display: block; width: 100%; min-width: 0; }
+
+.kb-board { display: flex; gap: var(--space-m); overflow-x: auto; padding-bottom: var(--space-1); align-items: stretch; }
+.kb-col { display: flex; flex-direction: column; flex: 0 0 280px; border-radius: var(--r-m); background: var(--hover-bg); padding: var(--space-3); }
+.kb-col-head {
+  display: flex; align-items: center; gap: var(--space-2); padding: 2px var(--space-1) var(--space-3); font-weight: 700; font-size: 13px; color: var(--text-primary);
+  .kb-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .kb-col-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pl-count.over { background: var(--error-color-light); color: var(--error-color-text); }
+}
+.kb-col-body { flex: 1; min-height: 120px; display: flex; flex-direction: column; gap: var(--space-2); }
+
+.kb-card {
+  display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-3) var(--space-3); cursor: grab;
+  border-radius: var(--r-m); background: var(--card-bg); border: 1px solid var(--border-color);
+  transition: border-color .15s ease;
+  &:hover { border-color: color-mix(in srgb, var(--primary-color) 35%, var(--border-color));}
+  &.readonly { cursor: pointer; }
+  &.done .kb-title { color: var(--text-muted); text-decoration: line-through; }
+  .kb-card-top { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); min-height: 4px; }
+  .kb-ref { font-size: 11px; color: var(--text-muted); font-weight: 600; }
+  .kb-title { font-size: 13px; line-height: 1.4; color: var(--text-primary); }
+  .kb-meta { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2); }
+}
+.kb-placeholder { min-height: 60px; border-radius: var(--r-m); border: 2px dashed color-mix(in srgb, var(--primary-color) 40%, transparent); background: var(--primary-color-light); }
+:host ::ng-deep .kb-card.cdk-drag-preview { box-shadow: var(--elevation-3); }
+.cdk-drag-animating, .kb-col-body.cdk-drop-list-dragging .kb-card:not(.cdk-drag-placeholder) { transition: transform 200ms cubic-bezier(0, 0, 0.2, 1); }

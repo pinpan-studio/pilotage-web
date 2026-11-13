@@ -1,0 +1,111 @@
+<div
+  #triggerEl
+  class="app-search-select-trigger"
+  [class.is-open]="isOpen()"
+  [class.is-disabled]="disabled"
+  [class.has-value]="displayLabel() !== ''"
+  (click)="toggle()"
+  (keydown)="onKeydown($event)"
+  tabindex="0"
+  cdkOverlayOrigin
+  #origin="cdkOverlayOrigin"
+>
+  @if (icon) {
+    <mat-icon class="trigger-icon">{{ icon }}</mat-icon>
+  }
+
+  <div class="trigger-content">
+    @if (displayLabel()) {
+      <span class="trigger-label">{{ displayLabel() }}</span>
+    } @else {
+      <span class="trigger-placeholder">{{ placeholder }}</span>
+    }
+  </div>
+
+  @if (clearable && displayLabel() && !disabled) {
+    <button type="button" class="clear-btn" (click)="clear($event)" matTooltip="Effacer la sélection">
+      <mat-icon>close</mat-icon>
+    </button>
+  }
+
+  <mat-icon class="arrow-icon">{{ isOpen() ? 'arrow_drop_up' : 'arrow_drop_down' }}</mat-icon>
+</div>
+
+<ng-template
+  cdkConnectedOverlay
+  [cdkConnectedOverlayOrigin]="origin"
+  [cdkConnectedOverlayOpen]="isOpen()"
+  [cdkConnectedOverlayPositions]="positions"
+  [cdkConnectedOverlayWidth]="triggerWidth() > 0 ? triggerWidth() + 'px' : '100%'"
+  [cdkConnectedOverlayMinWidth]="triggerWidth() > 0 ? triggerWidth() + 'px' : '100%'"
+  [cdkConnectedOverlayPanelClass]="'app-search-select-overlay'"
+  [cdkConnectedOverlayHasBackdrop]="false"
+  [cdkConnectedOverlayViewportMargin]="12"
+  (detach)="close()"
+  (overlayOutsideClick)="close()"
+>
+  <div class="pq-fs-panel app-search-select-panel" (keydown.escape)="close()">
+    <!-- Champ de recherche instantané -->
+    <div class="pq-fs-search">
+      <mat-icon>search</mat-icon>
+      <input
+        #searchInput
+        type="text"
+        [value]="searchTerm()"
+        (input)="onSearchChange($any($event.target).value)"
+        [placeholder]="searchPlaceholder"
+        autocomplete="off"
+        spellcheck="false"
+      />
+      @if (searchTerm()) {
+        <button type="button" class="pq-fs-search-clear" (click)="onSearchChange('')">
+          <mat-icon>close</mat-icon>
+        </button>
+      }
+    </div>
+
+    <!-- Liste déroulante défilante (exactement le même style que filter-dropdown) -->
+    <div class="pq-fs-list" role="listbox">
+      @for (o of filteredOptions(); track o.value; let i = $index) {
+        <button
+          type="button"
+          class="pq-fs-opt"
+          [class.pq-fs-opt--sel]="selectedOption()?.value === o.value"
+          [class.is-highlighted]="highlightedIndex() === i"
+          [disabled]="o.disabled"
+          (click)="select(o)"
+        >
+          @if (o.icon) {
+            <mat-icon class="pq-fs-opt-icon" [style.color]="o.color">{{ o.icon }}</mat-icon>
+          } @else if (o.color) {
+            <span class="pq-fs-dot" [style.background-color]="o.color"></span>
+          }
+
+          <span class="pq-fs-opt-label">{{ o.label }}</span>
+
+          @if (showCount && o.count != null && o.count > 0) {
+            <span class="pq-fs-opt-count">{{ o.count }}</span>
+          }
+
+          @if (selectedOption()?.value === o.value) {
+            <mat-icon class="pq-fs-check">check</mat-icon>
+          }
+        </button>
+      }
+
+      @if (!filteredOptions().length) {
+        <div class="pq-fs-empty">
+          <mat-icon>search_off</mat-icon>
+          <span>Aucun résultat pour « {{ searchTerm() }} »</span>
+        </div>
+      }
+    </div>
+
+    <!-- Pied avec bouton effacer / aucun -->
+    @if (allowNull && value() !== null) {
+      <button type="button" class="pq-fs-footer" (click)="clear()">
+        <mat-icon>filter_alt_off</mat-icon> {{ nullLabel }}
+      </button>
+    }
+  </div>
+</ng-template>

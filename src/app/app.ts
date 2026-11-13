@@ -1,27 +1,19 @@
 import { Component, inject, signal } from '@angular/core';
-import { RouterLink, RouterOutlet } from '@angular/router';
+import { RouterOutlet } from '@angular/router';
 import { Api } from '../api/genere/api';
 import { santeSante } from '../api/genere/functions';
-import { AuthService } from './noyau/auth.service';
 import { VERSION_API_ATTENDUE } from './noyau/config';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, RouterLink],
+  imports: [RouterOutlet],
+  styles: [`:host { display: flex; flex-direction: column; height: 100vh; height: 100dvh; } .zone { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }`],
   template: `
-  @if (alerteVersion()) { <div class="bandeau erreur">{{ alerteVersion() }}</div> }
-  @if (horsLigne()) { <div class="bandeau info">API injoignable : vérifiez la connexion internet. Les données affichées peuvent être anciennes.</div> }
-  @if (auth.connecte()) {
-    <header class="entete"><div class="conteneur">
-      <a class="marque" routerLink="/"><span class="logo">◆</span>Pilotage</a>
-      <nav><span class="mute">{{ auth.utilisateur()?.nom }}</span><button class="lien-bouton" (click)="auth.deconnexion()">Se déconnecter</button></nav>
-    </div></header>
-  }
-  <main class="conteneur"><router-outlet /></main>
-  <footer class="pied conteneur">Pilotage · dates en heure d'Abidjan (UTC+0)</footer>`,
+  @if (alerteVersion()) { <div class="banner-line tone-error">{{ alerteVersion() }}</div> }
+  @if (horsLigne()) { <div class="banner-line tone-warning">API injoignable : vérifiez la connexion internet. Les données affichées peuvent être anciennes.</div> }
+  <div class="zone"><router-outlet /></div>`,
 })
 export class App {
-  readonly auth = inject(AuthService);
   private readonly api = inject(Api);
   readonly alerteVersion = signal('');
   readonly horsLigne = signal(false);

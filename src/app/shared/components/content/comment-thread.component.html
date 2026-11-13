@@ -1,0 +1,108 @@
+<section class="thread" aria-label="Commentaires">
+  @if (!compact()) {
+    <header class="head">
+      <h2>{{ title() }} <span class="n">{{ total() }}</span></h2>
+      <button mat-button [matMenuTriggerFor]="sortMenu" class="sort"><mat-icon>sort</mat-icon>{{ sortLabels[sort()] }}</button>
+      <mat-menu #sortMenu="matMenu">
+        @for (s of sortModes; track s) {
+          <button mat-menu-item (click)="sort.set(s)"><mat-icon>{{ sort() === s ? 'check' : '' }}</mat-icon>{{ sortLabels[s] }}</button>
+        }
+      </mat-menu>
+    </header>
+    <app-comment-composer [author]="me()" [mentionables]="mentionables()" (submitted)="add($event)" />
+  }
+
+  <ol class="list">
+    @for (c of sorted(); track c.id) {
+      <li class="root">
+        <ng-container *ngTemplateOutlet="item; context: { $implicit: c, root: c, depth: 0 }" />
+        @if (c.replies?.length) {
+          <ol class="replies">
+            @for (r of shownReplies(c); track r.id) {
+              <li><ng-container *ngTemplateOutlet="item; context: { $implicit: r, root: c, depth: 1 }" /></li>
+            }
+          </ol>
+          @if (c.replies!.length > visibleReplies()) {
+            <button type="button" class="more" (click)="toggleReplies(c.id)">
+              <mat-icon>{{ expanded().has(c.id) ? 'expand_less' : 'subdirectory_arrow_right' }}</mat-icon>
+              {{ expanded().has(c.id) ? 'Masquer les réponses' : 'Afficher ' + (c.replies!.length - visibleReplies()) + ' autre(s) réponse(s)' }}
+            </button>
+          }
+        }
+        @if (replyTo() === c.id) {
+          <!-- Recréé quand la cible change, pour reprendre la mention @ de la bonne personne. -->
+          @for (t of [replyTarget]; track t?.id) {
+            <div class="reply-box">
+              <app-comment-composer [author]="me()" [mentionables]="mentionables()" [initial]="replyPrefix(t, c)" placeholder="Votre réponse…"
+                submitLabel="Répondre" cancelable startOpen autofocus compact (submitted)="reply(c, $event)" (cancelled)="replyTo.set(null)" />
+            </div>
+          }
+        }
+      </li>
+    } @empty {
+      <li class="empty"><mat-icon>forum</mat-icon><strong>Aucun commentaire pour l’instant</strong><span>Lancez la discussion !</span></li>
+    }
+  </ol>
+
+  @if (compact()) {
+    <app-comment-composer [author]="me()" [mentionables]="mentionables()" placeholder="Écrire un commentaire…" compact (submitted)="add($event)" />
+  }
+</section>
+
+<ng-template #item let-c let-root="root" let-depth="depth">
+  <article class="comment" [id]="'comment-' + c.id" [class.flash]="flash() === c.id" [class.pinned]="c.pinned" [class.reply]="depth > 0">
+    <span class="ava" [style.background]="c.deleted ? 'var(--text-muted)' : (c.author.color ?? 'var(--primary-color)')">{{ c.deleted ? '–' : initials(c.author.name) }}</span>
+    <div class="body">
+      @if (c.deleted) {
+        <p class="deleted"><mat-icon>block</mat-icon>Ce commentaire a été supprimé.</p>
+      } @else {
+        <header>
+          <strong>{{ c.author.name }}</strong>
+          @if (c.byAuthor) { <span class="badge author">Auteur</span> }
+          @if (c.author.role) { <span class="role">{{ c.author.role }}</span> }
+          @if (c.pinned) { <span class="badge pin"><mat-icon>push_pin</mat-icon>Épinglé</span> }
+          <span class="dot">·</span><time>{{ c.at }}</time>
+          @if (c.edited) { <span class="edited">(modifié)</span> }
+          <button mat-icon-button class="menu" [matMenuTriggerFor]="menu" aria-label="Actions"><mat-icon>more_horiz</mat-icon></button>
+          <mat-menu #menu="matMenu" xPosition="before">
+            @if (isMine(c)) {
+              <button mat-menu-item (click)="editing.set(c.id)"><mat-icon>edit</mat-icon>Modifier</button>
+              <button mat-menu-item (click)="remove(c)" class="danger"><mat-icon>delete</mat-icon>Supprimer</button>
+            }
+            @if (moderator() && depth === 0) {
+              <button mat-menu-item (click)="pin(c)"><mat-icon>push_pin</mat-icon>{{ c.pinned ? 'Désépingler' : 'Épingler en haut' }}</button>
+            }
+            <button mat-menu-item (click)="copyLink(c)"><mat-icon>link</mat-icon>Copier le lien</button>
+            @if (!isMine(c)) { <button mat-menu-item><mat-icon>flag</mat-icon>Signaler</button> }
+          </mat-menu>
+        </header>
+
+        @if (editing() === c.id) {
+          <app-comment-composer [author]="null" [initial]="c.text" submitLabel="Enregistrer" cancelable startOpen autofocus compact
+            (submitted)="edit(c, $event)" (cancelled)="editing.set(null)" />
+        } @else {
+          <div class="text kit-markdown" [innerHTML]="render(c.text)"></div>
+        }
+
+        @if (c.reactions?.length) {
+          <div class="reactions">
+            @for (r of c.reactions; track r.emoji) {
+              <button type="button" [class.mine]="r.mine" (click)="react(c, r.emoji)" [attr.aria-pressed]="!!r.mine">{{ r.emoji }} <b>{{ r.count }}</b></button>
+            }
+          </div>
+        }
+
+        <footer>
+          <button type="button" class="act" [class.on]="c.liked" (click)="like(c)" [attr.aria-pressed]="!!c.liked">
+            <mat-icon>{{ c.liked ? 'favorite' : 'favorite_border' }}</mat-icon>{{ c.likes || 'J’aime' }}
+          </button>
+          <button type="button" class="act" (click)="replyTarget = c; replyTo.set(root.id)"><mat-icon>chat_bubble_outline</mat-icon>Répondre</button>
+          <button type="button" class="act icon" [matMenuTriggerFor]="emo" aria-label="Ajouter une réaction"><mat-icon>add_reaction</mat-icon></button>
+          <mat-menu #emo="matMenu" class="emoji-menu">
+            <div class="emoji-row">@for (e of emojis; track e) { <button type="button" (click)="react(c, e)">{{ e }}</button> }</div>
+          </mat-menu>
+        </footer>
+      }
+    </div>
+  </article>
+</ng-template>

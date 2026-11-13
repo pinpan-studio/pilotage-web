@@ -1,88 +1,102 @@
 import { Component, computed, effect, inject, input, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
+import { MatIconModule } from '@angular/material/icon';
 import { Api } from '../../api/genere/api';
 import { projetsFonctionnalite, projetsFonctionnalites } from '../../api/genere/functions';
 import { FonctionnaliteDetailDto, FonctionnaliteDto } from '../../api/genere/models';
 import { PIPES } from '../noyau/pipes';
 import { ReferentielsService } from '../noyau/referentiels.service';
+import { Statut, tonDeCouleur } from '../noyau/statut';
+import { DataColumn, DataTableComponent } from '../shared/components/data/data-table.component';
+import { EmptyStateComponent } from '../shared/components/empty-state/empty-state.component';
+import { date } from '../noyau/format';
 import { ProjetCourant } from './projet';
+
+interface Ligne { id: string; ref: string; titre: string; lot: string; poids: number; statut: string; statut_code: string; depots: string; avancement: number; tests: number; activite: string; }
 
 @Component({
   selector: 'app-fonctionnalites',
-  imports: [FormsModule, RouterLink, ...PIPES],
+  imports: [FormsModule, MatIconModule, DataTableComponent, ...PIPES],
   template: `
-  <div class="filtres">
-    <input class="filtre" placeholder="Rechercher…" [(ngModel)]="texte">
-    <select class="filtre" [(ngModel)]="statut"><option value="">Tous les statuts</option>@for (s of ref.donnees()?.statuts_fonctionnalite ?? []; track s.code) { <option [value]="s.code">{{ s.libelle }}</option> }</select>
-    <select class="filtre" [(ngModel)]="lot"><option value="">Tous les lots</option>@for (l of lots(); track l) { <option [value]="l">{{ l }}</option> }</select>
-    <select class="filtre" [(ngModel)]="depot"><option value="">Tous les dépôts</option>@for (d of p.detail()?.depots ?? []; track d.id) { <option [value]="d.nom">{{ d.nom }}</option> }</select>
+  <div class="toolbar-row">
+    @for (s of filtresStatut(); track s.code) {
+      <button type="button" class="chip-filter" [class.on]="statut() === s.code" (click)="statut.set(statut() === s.code ? '' : s.code)">{{ s.libelle }}<span class="n">{{ s.nb }}</span></button>
+    }
+    <span class="spacer"></span>
+    <select class="select-chip" [ngModel]="depot()" (ngModelChange)="depot.set($event)" aria-label="Dépôt"><option value="">Tous les dépôts</option>@for (d of p.detail()?.depots ?? []; track d.id) { <option [value]="d.nom">{{ d.nom }}</option> }</select>
   </div>
-  <div class="carte defile">
-    <table class="tableau">
-      <thead><tr><th>Réf.</th><th>Fonctionnalité</th><th>Lot</th><th class="num">Poids</th><th>Statut</th><th>Dépôts</th><th class="avc">Avancement</th><th>Tests</th><th>Dernière activité</th></tr></thead>
-      <tbody>
-      @for (f of filtrees(); track f.id) {
-        <tr [class.alerte-ligne]="f.statut_effectif === 'bloque'" [class.barre-texte]="f.statut === 'abandonne'">
-          <td class="id"><a [routerLink]="[f.ref]">{{ f.ref }}</a></td>
-          <td>{{ f.titre }}@if (f.notes) { <div class="note">{{ f.notes }}</div> }</td>
-          <td>{{ f.jalon }}</td><td class="num">{{ f.poids }}</td>
-          <td><span [class]="'badge b-' + f.statut_effectif">{{ f.statut_effectif | libelle }}</span></td>
-          <td>@for (d of f.depots; track d.depot) { <div><small>{{ d.depot }}</small> <span [class]="'badge petit b-' + d.statut">{{ d.statut | libelle }}</span></div> }</td>
-          <td class="avc"><div class="barre"><span [style.width.%]="f.avancement * 100"></span></div><small>{{ f.avancement | pct }}</small></td>
-          <td>@for (t of f.cas_test; track t) { <span class="ref">{{ t }}</span> } @empty { <span class="mute">—</span> }</td>
-          <td><small>{{ f.derniere_activite | dateFr }}</small></td>
-        </tr>
-      } @empty { <tr><td colspan="9" class="vide">Aucune fonctionnalité.</td></tr> }
-      </tbody>
-    </table>
-  </div>`,
+  <section class="card">
+    <app-data-table [rows]="lignes()" [columns]="colonnes" rowKey="id" [pageSize]="25" maxHeight="none" clickable (rowClick)="ouvrir($event)" />
+  </section>`,
 })
 export class Fonctionnalites {
   readonly p = inject(ProjetCourant);
-  readonly ref = inject(ReferentielsService);
+  private readonly ref = inject(ReferentielsService);
   private readonly api = inject(Api);
+  private readonly router = inject(Router);
   readonly liste = signal<FonctionnaliteDto[]>([]);
-  texte = ''; statut = ''; lot = ''; depot = '';
-  readonly lots = computed(() => [...new Set(this.liste().map((f) => f.jalon).filter(Boolean))]);
-  filtrees() {
-    const t = this.texte.toLowerCase();
-    return this.liste().filter((f) => (!t || `${f.ref} ${f.titre}`.toLowerCase().includes(t)) && (!this.statut || f.statut_effectif === this.statut)
-      && (!this.lot || f.jalon === this.lot) && (!this.depot || f.depots.some((d) => d.depot === this.depot)));
-  }
+  readonly statut = signal(''); readonly depot = signal('');
+  readonly colonnes: DataColumn<Ligne>[] = [
+    { key: 'ref', label: 'Réf.', type: 'mono', sortable: true, width: 90, required: true },
+    { key: 'titre', label: 'Fonctionnalité', sortable: true, minWidth: 240, required: true },
+    { key: 'lot', label: 'Lot', sortable: true, width: 100 },
+    { key: 'poids', label: 'Poids', type: 'number', align: 'right', sortable: true, width: 80 },
+    { key: 'statut', label: 'Statut', type: 'badge', sortable: true, width: 140, tone: (r) => tonDeCouleur(this.ref.couleur(r.statut_code)) },
+    { key: 'depots', label: 'Dépôts', minWidth: 200 },
+    { key: 'avancement', label: 'Avancement', type: 'progress', sortable: true, width: 160 },
+    { key: 'tests', label: 'Tests', type: 'number', align: 'right', width: 80 },
+    { key: 'activite', label: 'Dernière activité', width: 140, hidden: false },
+  ];
+  readonly filtresStatut = computed(() => {
+    const n: Record<string, number> = {}; for (const f of this.liste()) n[f.statut_effectif] = (n[f.statut_effectif] ?? 0) + 1;
+    return (this.ref.donnees()?.statuts_fonctionnalite ?? []).filter((s) => n[s.code]).map((s) => ({ ...s, nb: n[s.code] }));
+  });
+  readonly lignes = computed<Ligne[]>(() => this.liste()
+    .filter((f) => (!this.statut() || f.statut_effectif === this.statut()) && (!this.depot() || f.depots.some((d) => d.depot === this.depot())))
+    .map((f) => ({
+      id: f.id, ref: f.ref, titre: f.titre, lot: f.jalon, poids: f.poids, statut: this.ref.libelle(f.statut_effectif), statut_code: f.statut_effectif,
+      depots: f.depots.map((d) => `${d.depot} : ${this.ref.libelle(d.statut)}`).join(' · ') || '—',
+      avancement: Math.round(f.avancement * 100), tests: f.cas_test.length, activite: date(f.derniere_activite),
+    })));
   constructor() { effect(() => { const c = this.p.code(); if (c) this.api.invoke(projetsFonctionnalites, { code: c }).then((l) => this.liste.set(l)); }); }
+  ouvrir(l: Ligne) { this.router.navigate(['/projets', this.p.code(), 'fonctionnalites', l.ref]); }
 }
 
 @Component({
   selector: 'app-fonctionnalite',
-  imports: [RouterLink, ...PIPES],
+  imports: [RouterLink, MatIconModule, Statut, EmptyStateComponent, ...PIPES],
   template: `
-  <p><a routerLink="..">← Toutes les fonctionnalités</a></p>
+  <a routerLink=".." class="crumbs" style="text-decoration: none"><mat-icon>arrow_back</mat-icon>Toutes les fonctionnalités</a>
   @if (f(); as f) {
-    <div class="grille">
-      <section class="carte fiche large"><h2>{{ f.ref }} — {{ f.titre }}</h2>
-        <dl>
-          <dt>Statut</dt><dd><span [class]="'badge b-' + f.statut_effectif">{{ f.statut_effectif | libelle }}</span> <small>(global : {{ f.statut | libelle }})</small></dd>
-          <dt>Avancement</dt><dd>{{ f.avancement | pct }}</dd>
-          <dt>Lot · poids</dt><dd>{{ f.jalon || '—' }} · {{ f.poids }}</dd>
-          <dt>Origine</dt><dd>{{ f.origine }}</dd>
+    <div class="grid-aside">
+      <div>
+        <section class="card" style="margin-bottom: 16px"><div class="card-head"><h2>{{ f.ref }} — {{ f.titre }}</h2><app-statut [code]="f.statut_effectif" /></div>
+          <div class="card-body">
+            <div class="bar-row"><span>Avancement</span><div class="bar"><i [style.width.%]="f.avancement * 100"></i></div><b>{{ f.avancement | pct }}</b></div>
+            @if (f.notes) { <p class="muted">{{ f.notes }}</p> }
+          </div></section>
+        <section class="card" style="margin-bottom: 16px"><div class="card-head"><h2>Cas de test</h2><span class="sub">{{ f.tests.length }}</span></div>
+          <div class="rows" style="padding-bottom: 8px">@for (t of f.tests; track t.ref) {
+            <div class="row"><span class="ref">{{ t.ref }}</span><div class="grow"><strong class="wrap">{{ t.titre }}</strong>@if (t.campagne) { <small>Campagne {{ t.campagne }}</small> }</div><app-statut [code]="t.resultat" /></div>
+          } @empty { <app-empty-state icon="fact_check" title="Aucun cas de test" subtitle="Le cahier de recette ne couvre pas encore cette fonctionnalité." /> }</div></section>
+        <section class="card"><div class="card-head"><h2>Activité liée</h2></div>
+          <div class="rows" style="padding-bottom: 8px">@for (e of f.journal.slice(0, 20); track e.id) {
+            <div class="row"><span class="ic-tile" [class]="'ic-tile ' + (e.evt === 'commit' ? 'tone-success' : 'tone-neutral')"><mat-icon>{{ e.evt === 'commit' ? 'commit' : e.evt === 'commande' ? 'terminal' : 'edit' }}</mat-icon></span>
+              <div class="grow"><strong class="mono">{{ e.hash ? e.hash + ' — ' + e.message : (e.fichier || e.commande || e.message) }}</strong><small>{{ e.auteur }} · {{ e.depot }}</small></div><span class="num">{{ e.ts | dateFr: true }}</span></div>
+          } @empty { <p class="muted" style="padding: 0 20px">Aucune activité.</p> }</div></section>
+      </div>
+      <aside class="card"><div class="card-head"><h2>Informations</h2></div><div class="card-body">
+        <dl class="kv">
+          <dt>Statut global</dt><dd><app-statut [code]="f.statut" /></dd>
+          <dt>Lot</dt><dd>{{ f.jalon || '—' }}</dd><dt>Poids</dt><dd>{{ f.poids }}</dd><dt>Origine</dt><dd>{{ f.origine }}</dd>
           <dt>Exigences</dt><dd>@for (e of f.exigences; track e) { <span class="ref">{{ e }}</span> } @empty { — }</dd>
-          <dt>Dépôts</dt><dd>@for (d of f.depots; track d.depot) { {{ d.depot }} <span [class]="'badge petit b-' + d.statut">{{ d.statut | libelle }}</span>&nbsp; } @empty { — }</dd>
-          <dt>Retours clients</dt><dd>@for (r of f.retours; track r) { <span class="ref">{{ r }}</span> } @empty { — }</dd>
-          @if (f.notes) { <dt>Notes</dt><dd>{{ f.notes }}</dd> }
-        </dl>
-      </section>
-      <section class="carte"><h2>Cas de test</h2>
-        <table class="tableau compact"><tbody>@for (t of f.tests; track t.ref) { <tr><td class="id">{{ t.ref }}</td><td>{{ t.titre }}</td><td><span [class]="'ref r-' + t.resultat">{{ t.resultat | libelle }}</span> <small>{{ t.campagne }}</small></td></tr> } @empty { <tr><td class="vide">Aucun cas de test.</td></tr> }</tbody></table>
-      </section>
-      <section class="carte"><h2>Commits</h2>
-        <table class="tableau compact"><tbody>@for (c of f.commits; track c.id) { <tr><td><small>{{ c.ts | dateFr }}</small></td><td class="id">{{ c.hash }}</td><td>{{ c.message }}</td></tr> } @empty { <tr><td class="vide">Aucun commit.</td></tr> }</tbody></table>
-      </section>
-      <section class="carte large"><h2>Journal lié</h2>
-        <table class="tableau compact"><tbody>@for (e of f.journal; track e.id) { <tr><td><small>{{ e.ts | dateFr: true }}</small></td><td><span [class]="'evt e-' + e.evt">{{ e.evt }}</span></td><td>{{ e.depot }}</td><td>{{ e.auteur }}</td><td class="code">{{ e.fichier || e.commande || e.message }}</td></tr> } @empty { <tr><td class="vide">Aucune activité.</td></tr> }</tbody></table>
-      </section>
+          <dt>Retours</dt><dd>@for (r of f.retours; track r) { <span class="ref">{{ r }}</span> } @empty { — }</dd>
+          <dt>Dépôts</dt><dd>@for (d of f.depots; track d.depot) { <div>{{ d.depot }} <app-statut [code]="d.statut" /></div> } @empty { — }</dd>
+          <dt>Dernière activité</dt><dd>{{ f.derniere_activite | dateFr: true }}</dd>
+        </dl></div></aside>
     </div>
-  } @else { <p class="chargement">Chargement…</p> }`,
+  } @else { <div class="loading">Chargement…</div> }`,
 })
 export class Fonctionnalite {
   private readonly p = inject(ProjetCourant);

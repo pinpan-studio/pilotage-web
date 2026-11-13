@@ -1,0 +1,55 @@
+<div class="uq">
+  <div class="uq-drop" [class.over]="dragging()" tabindex="0" role="button" aria-label="Ajouter des fichiers"
+    (click)="browse()" (keydown.enter)="browse()" (keydown.space)="browse(); $event.preventDefault()" (paste)="onPaste($event)"
+    (dragover)="$event.preventDefault(); dragging.set(true)" (dragleave)="dragging.set(false)" (drop)="onDrop($event)">
+    <span class="uq-drop-ic"><mat-icon>{{ dragging() ? 'file_download' : 'cloud_upload' }}</mat-icon></span>
+    <strong>{{ dragging() ? 'Déposez pour ajouter' : 'Glissez vos fichiers ici' }}</strong>
+    <span>ou <u>parcourez</u> · collez (Ctrl+V)</span>
+    <small>{{ acceptLabel() }}</small>
+  </div>
+
+  @if (rejections().length) {
+    <div class="uq-rejected">
+      <mat-icon>block</mat-icon>
+      <div>@for (r of rejections(); track $index) { <div><b>{{ r.name }}</b> : {{ r.reason }}</div> }</div>
+      <button type="button" (click)="rejections.set([])" aria-label="Masquer"><mat-icon>close</mat-icon></button>
+    </div>
+  }
+
+  @if (items().length) {
+    <div class="uq-summary">
+      <div class="uq-sum-text">
+        <strong>{{ busy() ? 'Envoi en cours…' : counts().error ? 'Envoi terminé avec des erreurs' : 'Envoi terminé' }}</strong>
+        <span>{{ counts().done }} / {{ active().length }} fichier(s) · {{ size(totalBytes()) }}@if (counts().error) { · <em>{{ counts().error }} en erreur</em> }</span>
+      </div>
+      <span class="spacer"></span>
+      @if (counts().error) { <button type="button" class="uq-link" (click)="retryAll()"><mat-icon>refresh</mat-icon>Tout réessayer</button> }
+      @if (busy()) { <button type="button" class="uq-link" (click)="cancelAll()">Tout annuler</button> }
+      @else { <button type="button" class="uq-link" (click)="clearDone()">Vider la liste</button> }
+    </div>
+    <div class="uq-total"><i [style.width.%]="totalProgress()" [class.err]="counts().error && !busy()"></i></div>
+
+    <ul class="uq-list">
+      @for (it of items(); track it.id) {
+        <li class="uq-item" [attr.data-status]="it.status">
+          <span class="uq-ic"><mat-icon>{{ icon(it) }}</mat-icon></span>
+          <div class="uq-main">
+            <div class="uq-line"><span class="uq-name" [title]="it.file.name">{{ it.file.name }}</span><span class="uq-size">{{ size(it.file.size) }}</span></div>
+            @switch (it.status) {
+              @case ('uploading') { <div class="uq-row"><div class="uq-bar"><i [style.width.%]="it.progress"></i></div><span class="uq-state">{{ it.progress }} %</span></div> }
+              @case ('queued') { <div class="uq-row"><div class="uq-bar idle"></div><span class="uq-state">En attente…</span></div> }
+              @case ('done') { <span class="uq-state ok"><mat-icon>check_circle</mat-icon>Envoyé</span> }
+              @case ('error') { <span class="uq-state err"><mat-icon>error</mat-icon>{{ it.error }}</span> }
+              @case ('canceled') { <span class="uq-state"><mat-icon>do_not_disturb_on</mat-icon>Annulé</span> }
+            }
+          </div>
+          <div class="uq-actions">
+            @if (it.status === 'uploading' || it.status === 'queued') { <button type="button" (click)="cancel(it)" matTooltip="Annuler"><mat-icon>close</mat-icon></button> }
+            @if (it.status === 'error' || it.status === 'canceled') { <button type="button" (click)="retry(it)" matTooltip="Réessayer"><mat-icon>refresh</mat-icon></button> }
+            @if (it.status !== 'uploading') { <button type="button" (click)="remove(it)" matTooltip="Retirer"><mat-icon>delete_outline</mat-icon></button> }
+          </div>
+        </li>
+      }
+    </ul>
+  }
+</div>

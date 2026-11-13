@@ -1,0 +1,31 @@
+// ═══════════════════════════════════════════════════════════
+//  Shim temporaire de migration @angular/flex-layout
+//  Reproduit les breakpoints lt-sm/lt-md/lt-lg/lt-xl/gt-md de
+//  flex-layout via les mixins de _breakpoints.scss existants.
+//  Chaque classe ne pilote qu'UNE propriété (direction/align/gap/flex)
+//  pour ne jamais écraser les autres styles inline d'un élément.
+//  À supprimer une fois toutes les pages migrées vers du SCSS dédié.
+// ═══════════════════════════════════════════════════════════
+@import 'breakpoints';
+
+.fx-dir-lt-sm   { @include md  { flex-direction: var(--fx-dir-lt-sm, row) !important; } }
+.fx-align-lt-sm { @include md  { justify-content: var(--fx-jc-lt-sm, flex-start) !important; align-items: var(--fx-ai-lt-sm, stretch) !important; } }
+.fx-gap-lt-sm   { @include md  { gap: var(--fx-gap-lt-sm, 0) !important; } }
+.fx-flex-lt-sm  { @include md  { flex: var(--fx-flex-lt-sm, 1 1 auto) !important; } }
+
+.fx-dir-lt-md   { @include lg  { flex-direction: var(--fx-dir-lt-md, row) !important; } }
+.fx-align-lt-md { @include lg  { justify-content: var(--fx-jc-lt-md, flex-start) !important; align-items: var(--fx-ai-lt-md, stretch) !important; } }
+.fx-gap-lt-md   { @include lg  { gap: var(--fx-gap-lt-md, 0) !important; } }
+.fx-flex-lt-md  { @include lg  { flex: var(--fx-flex-lt-md, 1 1 auto) !important; } }
+
+.fx-dir-lt-lg   { @include xl  { flex-direction: var(--fx-dir-lt-lg, row) !important; } }
+.fx-align-lt-lg { @include xl  { justify-content: var(--fx-jc-lt-lg, flex-start) !important; align-items: var(--fx-ai-lt-lg, stretch) !important; } }
+.fx-gap-lt-lg   { @include xl  { gap: var(--fx-gap-lt-lg, 0) !important; } }
+.fx-flex-lt-lg  { @include xl  { flex: var(--fx-flex-lt-lg, 1 1 auto) !important; } }
+
+.fx-dir-lt-xl   { @media (max-width: #{$bp-4xl}) { flex-direction: var(--fx-dir-lt-xl, row) !important; } }
+.fx-align-lt-xl { @media (max-width: #{$bp-4xl}) { justify-content: var(--fx-jc-lt-xl, flex-start) !important; align-items: var(--fx-ai-lt-xl, stretch) !important; } }
+.fx-gap-lt-xl   { @media (max-width: #{$bp-4xl}) { gap: var(--fx-gap-lt-xl, 0) !important; } }
+.fx-flex-lt-xl  { @media (max-width: #{$bp-4xl}) { flex: var(--fx-flex-lt-xl, 1 1 auto) !important; } }
+
+.fx-flex-gt-md  { @include from-2xl { flex: var(--fx-flex-gt-md, 1 1 auto) !important; } }
