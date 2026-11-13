@@ -1,61 +1,90 @@
-import { Component, inject, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Component, computed, inject } from '@angular/core';
+import { Router, RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
-import { Api } from '../../api/genere/api';
-import { projetsPortefeuille } from '../../api/genere/functions';
+import { MatButtonModule } from '@angular/material/button';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { ProjetResumeDto } from '../../api/genere/models';
 import { PIPES } from '../noyau/pipes';
-import { Statut } from '../noyau/statut';
+import { NavigationService } from '../noyau/navigation.service';
+import { date } from '../noyau/format';
+import { StatCounterComponent } from '../shared/components/data/stat-counter.component';
+import { DataColumn, DataTableComponent } from '../shared/components/data/data-table.component';
 import { EmptyStateComponent } from '../shared/components/empty-state/empty-state.component';
 import { SkeletonComponent } from '../shared/components/skeleton/skeleton.component';
 
+interface Ligne { id: string; code: string; nom: string; client: string; avancement: number; recette: number; livrables: number; retours: number; alertes: number; livraison: string; jalon: string }
+
+/** Portefeuille — composition du tableau de bord du ui-kit appliquée à l'ensemble des projets. */
 @Component({
   selector: 'app-portefeuille',
-  imports: [RouterLink, MatIconModule, Statut, EmptyStateComponent, SkeletonComponent, ...PIPES],
-  styles: [`
-    .projets { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: var(--space-4); }
-    a.card { display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-5); color: inherit; text-decoration: none; transition: box-shadow .15s, transform .15s;
-      &:hover { box-shadow: var(--elevation-2); transform: translateY(-1px); } }
-    .haut { display: flex; align-items: flex-start; gap: var(--space-3); h2 { margin: 0; font: 600 var(--fs-h4) / 1.35 var(--font-heading); } small { color: var(--text-muted); } .grow { flex: 1; min-width: 0; } }
-    dl { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-3); margin: 0; dt { font-size: var(--fs-caption); color: var(--text-muted); } dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; } }
-    .pied { display: flex; align-items: center; gap: var(--space-2); font-size: var(--fs-caption); color: var(--text-muted); mat-icon { font-size: 16px; width: 16px; height: 16px; } }
-    .alerte { color: var(--error-color); font-weight: 600; }
-  `],
+  imports: [RouterLink, MatIconModule, MatButtonModule, MatProgressBarModule, StatCounterComponent, DataTableComponent, EmptyStateComponent, SkeletonComponent, ...PIPES],
   template: `
-  <div class="page">
-    <div class="page-head"><div class="titles"><span class="eyebrow">Espace de travail</span><h1>Portefeuille</h1><p>{{ projets()?.length ?? 0 }} projet(s) suivi(s), indicateurs calculés en temps réel.</p></div></div>
-    @if (erreur()) { <p class="err-text">{{ erreur() }}</p> }
-    @if (!projets()) { <app-skeleton variant="card" [count]="3" /> }
+  <div class="pl-page">
+    <div class="page-head">
+      <div class="titles"><span class="eyebrow">{{ aujourdhui }}</span><h1>Portefeuille</h1><p>{{ projets()?.length ?? 0 }} projet(s) suivi(s) · indicateurs recalculés à chaque visite.</p></div>
+      <div class="actions"><button mat-stroked-button (click)="nav.chargerProjets(true)"><mat-icon>refresh</mat-icon>Actualiser</button></div>
+    </div>
+    @if (!projets()) { <app-skeleton variant="card" [count]="4" /> }
     @else if (!projets()!.length) { <app-empty-state icon="folder_off" title="Aucun projet" subtitle="Vous n'avez accès à aucun projet pour le moment." /> }
     @else {
-      <div class="projets">
-        @for (p of projets(); track p.id) {
-          <a class="card" [routerLink]="['/projets', p.code]">
-            <div class="haut"><span class="ic-tile tone-primary"><mat-icon>folder</mat-icon></span>
-              <div class="grow"><h2>{{ p.nom }}</h2><small>{{ p.client }} · {{ p.code }}</small></div><app-statut [code]="p.statut" /></div>
-            <div class="bar-row"><span>Avancement</span><div class="bar"><i [style.width.%]="p.avancement * 100"></i></div><b>{{ p.avancement | pct }}</b></div>
-            <dl>
-              <div><dt>Couverture TDR</dt><dd>{{ p.couverture | pct }}</dd></div>
-              <div><dt>Recette OK</dt><dd>{{ p.taux_recette | pct }}</dd></div>
-              <div><dt>Livrables</dt><dd>{{ p.avancement_documents | pct }}</dd></div>
-              <div><dt>Retours ouverts</dt><dd>{{ p.nb_retours_ouverts }}</dd></div>
-              <div><dt>Actions en retard</dt><dd [class.alerte]="p.nb_actions_en_retard">{{ p.nb_actions_en_retard }}</dd></div>
-              <div><dt>Livraison</dt><dd>{{ p.date_livraison_prevue | dateFr }}</dd></div>
-            </dl>
-            <div class="pied">
-              @if (p.prochain_jalon) { <mat-icon>flag</mat-icon>{{ p.prochain_jalon.nom }} — {{ p.prochain_jalon.date_prevue | dateFr }} }
-              <span class="spacer"></span>
-              @if (p.nb_alertes.haute) { <span class="alerte">{{ p.nb_alertes.haute }} alerte(s) haute(s)</span> }
-            </div>
-          </a>
-        }
+      <div class="kpis">
+        <div class="card kpi"><span class="k-label"><mat-icon>folder</mat-icon>Projets en cours</span><span class="k-val"><app-stat-counter [value]="enCours()" /></span><span class="k-foot">sur {{ projets()!.length }} au total</span></div>
+        <div class="card kpi"><span class="k-label"><mat-icon>trending_up</mat-icon>Avancement moyen</span><span class="k-val">{{ moyenne() | pct }}</span><span class="k-foot">pondéré par projet</span></div>
+        <div class="card kpi"><span class="k-label"><mat-icon>error</mat-icon>Alertes hautes</span><span class="k-val">{{ hautes() }}</span><span class="k-foot">{{ projetsAlerte() }} projet(s) concerné(s)</span></div>
+        <div class="card kpi"><span class="k-label"><mat-icon>forum</mat-icon>Retours clients ouverts</span><span class="k-val">{{ retours() }}</span><span class="k-foot">{{ retard() }} action(s) en retard</span></div>
+      </div>
+      <div class="grid-3">
+        <section class="card span-2">
+          <div class="card-head"><h2>Avancement des projets</h2></div>
+          <div class="card-body goals">@for (p of projets(); track p.id) {
+            <a class="goal" [routerLink]="['/projets', p.code]" style="color: inherit; text-decoration: none">
+              <div class="g-top"><span><strong>{{ p.nom }}</strong> · {{ p.client }}</span><strong class="tabular">{{ p.avancement | pct }}</strong></div>
+              <mat-progress-bar mode="determinate" [value]="p.avancement * 100" />
+              <small>Recette {{ p.taux_recette | pct }} · livrables {{ p.avancement_documents | pct }} · livraison {{ p.date_livraison_prevue | dateFr }}@if (p.prochain_jalon) { · prochain jalon « {{ p.prochain_jalon.nom }} » le {{ p.prochain_jalon.date_prevue | dateFr }} }</small>
+            </a> }</div>
+        </section>
+        <section class="card">
+          <div class="card-head"><h2>À traiter</h2></div>
+          <div class="rows" style="padding-bottom: 8px">
+            @for (p of aTraiter(); track p.id) {
+              <a class="row" [routerLink]="['/projets', p.code, 'synthese']"><span class="ic-tile tone-error"><mat-icon>priority_high</mat-icon></span>
+                <div class="grow"><strong>{{ p.nom }}</strong><small>{{ p.nb_alertes.haute }} alerte(s) haute(s) · {{ p.nb_alertes.moyenne }} moyenne(s)</small></div><mat-icon class="muted">chevron_right</mat-icon></a>
+            } @empty { <p class="muted" style="padding: 0 20px">Aucune alerte haute. 🎉</p> }
+          </div>
+        </section>
+        <app-data-table class="wide" title="Tous les projets" [rows]="lignes()" [columns]="colonnes" rowKey="id" [pageSize]="10" maxHeight="none" clickable (rowClick)="ouvrir($event)" />
       </div>
     }
   </div>`,
 })
 export class Portefeuille {
-  private readonly api = inject(Api);
-  readonly projets = signal<ProjetResumeDto[] | null>(null);
-  readonly erreur = signal('');
-  constructor() { this.api.invoke(projetsPortefeuille).then((p) => this.projets.set(p)).catch(() => { this.projets.set([]); this.erreur.set('Impossible de charger le portefeuille.'); }); }
+  readonly nav = inject(NavigationService);
+  private readonly router = inject(Router);
+  readonly aujourdhui = new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Africa/Abidjan' }).format(new Date());
+  readonly projets = this.nav.projets;
+  private readonly l = computed(() => this.projets() ?? []);
+  readonly enCours = computed(() => this.l().filter((p) => p.statut === 'en_cours').length);
+  readonly moyenne = computed(() => (this.l().length ? this.l().reduce((a, p) => a + p.avancement, 0) / this.l().length : null));
+  readonly hautes = computed(() => this.l().reduce((a, p) => a + p.nb_alertes.haute, 0));
+  readonly projetsAlerte = computed(() => this.l().filter((p) => p.nb_alertes.haute).length);
+  readonly retours = computed(() => this.l().reduce((a, p) => a + p.nb_retours_ouverts, 0));
+  readonly retard = computed(() => this.l().reduce((a, p) => a + p.nb_actions_en_retard, 0));
+  readonly aTraiter = computed(() => [...this.l()].filter((p) => p.nb_alertes.haute).sort((a, b) => b.nb_alertes.haute - a.nb_alertes.haute).slice(0, 6));
+  readonly colonnes: DataColumn<Ligne>[] = [
+    { key: 'nom', label: 'Projet', minWidth: 220, sortable: true, required: true },
+    { key: 'client', label: 'Client', width: 170, sortable: true },
+    { key: 'avancement', label: 'Avancement', type: 'progress', width: 160, sortable: true },
+    { key: 'recette', label: 'Recette OK', type: 'progress', width: 150, sortable: true },
+    { key: 'livrables', label: 'Livrables', type: 'progress', width: 150, sortable: true },
+    { key: 'retours', label: 'Retours', type: 'number', align: 'right', width: 90, sortable: true },
+    { key: 'alertes', label: 'Alertes hautes', type: 'badge', width: 130, sortable: true, tone: (r) => (r.alertes ? 'error' : 'success') },
+    { key: 'livraison', label: 'Livraison', width: 120 },
+    { key: 'jalon', label: 'Prochain jalon', minWidth: 180 },
+  ];
+  readonly lignes = computed<Ligne[]>(() => this.l().map((p: ProjetResumeDto) => ({
+    id: p.id, code: p.code, nom: p.nom, client: p.client, avancement: Math.round(p.avancement * 100), recette: Math.round((p.taux_recette ?? 0) * 100),
+    livrables: Math.round((p.avancement_documents ?? 0) * 100), retours: p.nb_retours_ouverts, alertes: p.nb_alertes.haute, livraison: date(p.date_livraison_prevue),
+    jalon: p.prochain_jalon ? `${p.prochain_jalon.nom} (${date(p.prochain_jalon.date_prevue)})` : '—' })));
+  constructor() { this.nav.chargerProjets(); }
+  ouvrir(l: Ligne) { this.router.navigate(['/projets', l.code]); }
 }

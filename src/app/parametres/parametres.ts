@@ -8,7 +8,7 @@ import { MatIconModule } from '@angular/material/icon';
   imports: [RouterOutlet, RouterLink, RouterLinkActive, MatIconModule],
   styleUrl: './parametres.scss',
   template: `
-  <div class="page">
+  <div class="pl-page">
     <div class="page-head"><div class="titles"><span class="eyebrow">Compte</span><h1>Paramètres</h1><p>Profil, sécurité et préférences.</p></div></div>
     <div class="layout">
       <nav class="sub" aria-label="Sections">

@@ -1,242 +1,170 @@
+// Copie conforme de la sidenav et de la barre d'outils du catalogue (layouts/kit-layout, route `/`).
+// Garder ces deux fichiers alignés.
 @import 'styles/breakpoints';
 
-:host {
-  flex-direction: column;
-  box-sizing: border-box;
-  display: flex;
-  flex: 1 1 1e-9px;
-  overflow-x: hidden;
-  max-width: 100vw;
-}
+:host { display: flex; flex: 1 1 1e-9px; min-height: 0; height: 100%; min-width: 0; font-family: var(--font-body); color: var(--text-primary); }
 
-.shell-container {
-  height: 100%;
-  width: 100%;
-  background: var(--bg);
-}
+.kit-container { width: 100%; height: 100%; background: var(--bg); }
 
-// ─── Sidenav : rail d'icônes compact ──────────────────────────────
-// La sous-navigation détaillée de chaque module vit dans son propre
-// sidenav secondaire (voir chaque module) ; ce rail ne fait que
-// basculer entre modules. Même logique de padding (pas margin) que
-// les sidenavs de module pour le "gap" flottant.
-$rail-width: 76px;
-
-.shell-sidenav {
-  width: calc(#{$rail-width} + var(--space-s) * 2);
+.kit-sidenav {
+  width: calc(var(--sidebar-width) + var(--space-s) * 2);
   box-sizing: border-box;
   padding: var(--space-s);
   background: transparent;
   border: none;
-
-  @include mobile {
-    width: min(280px, 85vw);
-  }
+  @include mobile { width: min(320px, 85vw); }
 }
 
 .sidenav-inner {
-  width: 100%;
   height: 100%;
-  background: var(--mat-sys-surface-container-low, var(--card-bg));
-  border-radius: var(--radius-card);
   display: flex;
   flex-direction: column;
-  align-items: center;
+  background-color: var(--mat-sys-surface-container-low, var(--card-bg));
+  // Valeur globale de --radius-card (les pages d'exemple la redéfinissent pour leurs cartes).
+  border-radius: var(--r-l);
   overflow: hidden;
 }
 
 .sidenav-header {
-  padding: var(--space-l) 0 var(--space-m);
   display: flex;
-  justify-content: center;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-m) var(--space-l);
+  border-bottom: 0;
 
-  .brand-logo {
-    height: 32px;
-    width: auto;
-    cursor: default;
-  }
+  .brand-logo { height: 30px; width: auto; }
+  .header-text { display: flex; flex-direction: column; flex: 1; }
+  .app-title { font-family: 'Outfit', sans-serif; font-size: 15px; font-weight: 700; color: var(--text-primary); }
+  .app-subtitle { font-size: 11px; color: var(--text-muted); }
+  .close-drawer-btn { color: var(--text-muted); }
 }
 
-.nav-scrollbar {
+.nav-search {
+  margin: var(--space-3) var(--space-4) 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 38px;
+  padding: 0 var(--space-3);
+  border-radius: var(--r-m);
+  border: 0;
+  background: var(--mat-sys-surface-container-high, var(--hover-bg));
+  mat-icon { font-size: 18px; width: 18px; height: 18px; color: var(--text-muted); }
+  input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; font: inherit; font-size: 13px; color: var(--text-primary); }
+  .clear { border: 0; background: transparent; cursor: pointer; display: flex; padding: 0; color: var(--text-muted); }
+  &:focus-within { box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary-color) 45%, transparent); }
+}
+
+.sidenav-menu-wrapper {
   flex: 1;
-  min-height: 0;
-  width: 100%;
-  --scrollbar-size: 4px;
-  --scrollbar-thumb-color: var(--mat-sys-outline-variant, var(--border-color));
-  --scrollbar-track-color: transparent;
+  overflow-y: auto;
+  padding: var(--space-4);
+  &::-webkit-scrollbar { width: 5px; }
+  &::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 99px; }
 }
 
-.nav-rail {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-1);
-  padding: 0 var(--space-s);
-}
+.menu-section {
+  margin-bottom: var(--space-3);
 
-.nav-rail-item {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-secondary);
-  transition: all 0.2s ease;
-  flex-shrink: 0;
-
-  &:hover {
-    background: var(--hover-bg);
-    color: var(--text-primary);
-  }
-
-  &.active {
-    background: var(--primary-color-light) !important;
-    color: var(--primary-color) !important;
-  }
-}
-
-.user-avatar-btn {
-  border: none;
-  background: transparent;
-  padding: 0;
-  margin: var(--space-m) 0;
-  cursor: pointer;
-  flex-shrink: 0;
-
-  .avatar {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background: var(--primary-color);
-    color: #fff;
+  .section-header {
     display: flex;
     align-items: center;
-    justify-content: center;
-    font-family: 'Outfit', sans-serif;
-    font-weight: 700;
-    font-size: 14px;
+    width: 100%;
+    padding: var(--space-3) var(--space-4);
+    border: 0;
+    background: transparent;
+    border-radius: var(--radius-md);
+    color: var(--text-secondary);
+    font: inherit;
+    text-align: left;
+    &.clickable { cursor: pointer; &:hover { background: var(--hover-bg); } }
+    .section-icon { font-size: 18px; width: 18px; height: 18px; margin-right: var(--space-3); }
+    .section-title { font-size: 13px; font-weight: 600; letter-spacing: 0.01em; }
+  }
+
+  .section-items { padding-left: var(--space-4); margin-top: var(--space-1); display: flex; flex-direction: column; gap: 2px; }
+
+  .menu-item {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    box-sizing: border-box;
+    padding: var(--space-2) var(--space-3);
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    font: inherit;
+    text-align: left;
+    text-decoration: none;
+    cursor: pointer;
+    color: var(--text-muted);
+    transition: all 0.2s ease;
+
+    .item-icon { font-size: 16px; width: 16px; height: 16px; margin-right: var(--space-3); flex-shrink: 0; }
+    .item-label { font-size: 12.5px; font-weight: 500; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .count { font-size: 11px; padding: 1px 7px; border-radius: 99px; background: var(--hover-bg); color: var(--text-secondary); margin-left: var(--space-2); }
+
+    &:hover { background-color: var(--hover-bg); color: var(--text-primary); }
+    &.active { background-color: var(--primary-color-light) !important; color: var(--primary-color) !important; font-weight: 600; }
+    &.top { padding: var(--space-3) var(--space-4); .item-label { font-size: 13px; font-weight: 600; } }
   }
 }
 
-// ─── Toolbar ─────────────────────────────────────────────────────
-.shell-toolbar {
-  background: var(--bg);
-  height: var(--header-height);
-  padding: 0 var(--space-l);
+.chevron { font-size: 18px; width: 18px; height: 18px; transition: transform 0.2s ease; &.open { transform: rotate(180deg); } }
+.spacer { flex: 1; }
+
+.kit-main { display: flex; flex-direction: column; }
+
+.kit-toolbar {
   position: sticky;
   top: 0;
-  z-index: 100;
-  border-bottom: 1px solid var(--border);
-
-  @include mobile {
-    padding: 0 var(--space-s);
-  }
-}
-
-.page-title {
-  font-family: 'Outfit', sans-serif;
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-left: var(--space-m);
-
-  @include mobile {
-    display: none;
-  }
-}
-
-.spacer {
-  flex: 1 1 auto;
-}
-
-.avatar-btn {
-  width: 40px !important;
-  height: 40px !important;
-  padding: 0 !important;
-  margin-left: var(--space-xs);
-  border-radius: 50% !important;
-  overflow: hidden;
-
-  .avatar {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--primary-color);
-    color: #fff;
-    font-family: 'Outfit', sans-serif;
-    font-weight: 700;
-    font-size: 14px;
-    border-radius: 50%;
-  }
-}
-
-// ─── Contenu ─────────────────────────────────────────────────────
-.content-area {
-  height: calc(100% - var(--header-height));
+  z-index: 3;
+  flex: 0 0 auto;
+  height: var(--header-height);
+  padding: 0 var(--space-m);
+  gap: var(--space-s);
   background: var(--bg);
-  --scrollbar-size: 6px;
-  --scrollbar-thumb-color: var(--mat-sys-outline-variant, var(--border-color));
-  --scrollbar-track-color: transparent;
+  border-bottom: 0;
+  .toolbar-title { display: flex; align-items: center; min-width: 0; font-family: 'Outfit', sans-serif; font-size: 18px; font-weight: 700;
+    .crumb { color: var(--text-muted); font-weight: 600; white-space: nowrap; }
+    .sep { margin: 0 var(--space-1); font-size: 20px; width: 20px; height: 20px; color: var(--text-muted); }
+    .cur { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } }
+  .palette-btn { display: flex; align-items: center; gap: var(--space-2); height: 38px; padding: 0 var(--space-2) 0 var(--space-3); border-radius: 19px; border: 0;
+    background: var(--mat-sys-surface-container-high, var(--hover-bg)); color: var(--text-muted); font: 13px 'Inter', sans-serif; cursor: pointer; min-width: 220px;
+    mat-icon { font-size: 19px; width: 19px; height: 19px; }
+    .pb-label { flex: 1; text-align: left; }
+    &:hover { background: var(--mat-sys-surface-container-highest, var(--hover-bg)); color: var(--text-secondary); } }
+  .avatar-btn { width: 40px; height: 40px; margin-left: var(--space-1); padding: 0; border: 0; border-radius: 50%; background: none; cursor: pointer; flex-shrink: 0;
+    .avatar { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; border-radius: 50%;
+      background: var(--primary-color); color: #fff; font-family: 'Outfit', sans-serif; font-weight: 700; font-size: 14px; }
+    &:focus-visible { outline: 2px solid var(--primary-color); outline-offset: 2px; } }
+  @include mobile { padding: 0 var(--space-s);
+    .toolbar-title { font-size: 16px; .crumb, .sep { display: none !important; } }
+    .palette-btn { min-width: 0; padding: 0 9px; .pb-label, .pb-kbd { display: none; } }
+    .hide-sm { display: none !important; } }
 }
 
-// ngx-scrollbar v15 n'expose pas de `contentClass` : on cible directement
-// son wrapper interne réel pour que les pages qui ont besoin de hauteur
-// 100% (ex: modules avec leur propre mat-sidenav-container) puissent
-// s'appuyer sur une base définie, tout en restant libres de grandir
-// au-delà (min-height, pas height) pour les pages qui débordent.
-// Pas de padding ici : chaque page de module gère déjà son propre
-// padding interne (convention existante dans tout l'admin).
-::ng-deep .content-area > .ng-scroll-content {
-  width: 100%;
-  min-height: 100%;
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
-  overflow-x: hidden;
-}
+.menu-me { display: flex; flex-direction: column; padding: var(--space-3) var(--space-4); line-height: 1.4;
+  strong { font-size: var(--fs-body); font-weight: 600; } small { font-size: var(--fs-caption); color: var(--text-muted); } }
+.menu-kbd { margin-left: auto; padding-left: var(--space-4); }
 
-// ─── Drawer droit (profil / notifications / tâches du jour) ──────
-// Style carte flottante aligné sur le sidenav principal du module tâches
-.right-drawer {
-  width: calc(360px + var(--space-s) * 2);
-  box-sizing: border-box;
-  padding: var(--space-s) var(--space-s) var(--space-s) 0;
-  background: transparent;
-  border: none;
-  box-shadow: none;
-  overflow: hidden;
-  max-width: 95vw;
+// ─── Contenu des pages ─────────────────────────────────────────
+.content { flex: 1; min-height: 0; overflow: auto; padding: var(--space-3) var(--space-8) var(--space-10); box-sizing: border-box;
+  &.flush { padding: 0; overflow: hidden; display: flex; flex-direction: column; }
+  @include lg { &:not(.flush) { padding: var(--space-3) var(--space-6) var(--space-8); } }
+  @include mobile { &:not(.flush) { padding: var(--space-2) var(--space-4) var(--space-6); } } }
 
-  @include mobile {
-    width: min(360px, 92vw) !important;
-    padding: var(--space-s);
-  }
-
-  .sidenav-inner {
-    width: 100%;
-    height: 100%;
-    background-color: var(--mat-sys-surface-container-low, var(--card-bg));
-    border-radius: var(--radius-card);
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    box-sizing: border-box;
-  }
-}
+// ─── Messagerie : sidenav droite ───────────────────────────────
+.chat-btn { position: relative;
+  &.on { color: var(--primary-color); }
+  .chat-n { position: absolute; top: 4px; right: 2px; min-width: 16px; height: 16px; padding: 0 var(--space-1); box-sizing: border-box; border-radius: var(--radius-sm);
+    background: var(--error-color); color: #fff; font: 700 10px / 16px var(--font-body); text-align: center; pointer-events: none; } }
+.chat-drawer { width: calc(380px + var(--space-s) * 2); box-sizing: border-box; padding: var(--space-s); background: transparent; border: none; box-shadow: none;
+  @include mobile { width: min(400px, 94vw); } }
+.chat-inner { height: 100%; display: flex; flex-direction: column; overflow: hidden; border-radius: var(--r-l);
+  background: var(--mat-sys-surface-container-low, var(--card-bg)); }
 
 // ─── Ajouts Pilotage ───────────────────────────────────────────
-.brand-mark { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center;
-  background: var(--mat-sys-primary, var(--primary-color)); color: var(--mat-sys-on-primary, #fff); mat-icon { font-size: 22px; width: 22px; height: 22px; } }
-.nav-rail-item .lbl { display: none; }
-@include mobile { .nav-rail-item { width: 100%; justify-content: flex-start; gap: 12px; padding: 0 16px; .lbl { display: inline; font-size: 14px; } } }
-.compte { display: flex; flex-direction: column; gap: 16px; padding: 20px; width: 100%; box-sizing: border-box; height: 100%;
-  .tete { display: flex; align-items: center; gap: 12px; }
-  .avatar.lg { width: 48px; height: 48px; font-size: 16px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--primary-color); color: #fff; font-weight: 600; flex: 0 0 48px; }
-  .id { min-width: 0; strong { display: block; } small { color: var(--text-muted); display: block; overflow: hidden; text-overflow: ellipsis; } }
-  .lignes { display: flex; flex-direction: column; gap: 4px; margin-top: 8px;
-    button, a { display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px 12px; border: 0; border-radius: 10px; background: none; color: var(--text-primary);
-      font: 500 14px var(--font-body, Inter); text-decoration: none; cursor: pointer; text-align: left; &:hover { background: var(--hover-bg); } mat-icon { color: var(--text-secondary); } } }
-  .bas { margin-top: auto; font-size: 12px; color: var(--text-muted); } }
+.brand-mark { width: 32px; height: 30px; border-radius: 9px; display: inline-flex; align-items: center; justify-content: center; flex: 0 0 32px;
+  background: var(--mat-sys-primary, var(--primary-color)); color: var(--mat-sys-on-primary, #fff); mat-icon { font-size: 19px; width: 19px; height: 19px; } }
+img.avatar { display: block; }

@@ -75,6 +75,8 @@ export type { ProjetsRisques$Params as ProjetsRisques$Params } from './fn/projet
 export { projetsRisques as projetsRisques } from './fn/projets/projets-risques';
 export type { ProjetsActions$Params as ProjetsActions$Params } from './fn/projets/projets-actions';
 export { projetsActions as projetsActions } from './fn/projets/projets-actions';
+export type { EcritureCreerTache$Params as EcritureCreerTache$Params } from './fn/projets/ecriture-creer-tache';
+export { ecritureCreerTache as ecritureCreerTache } from './fn/projets/ecriture-creer-tache';
 export type { ProjetsChangements$Params as ProjetsChangements$Params } from './fn/projets/projets-changements';
 export { projetsChangements as projetsChangements } from './fn/projets/projets-changements';
 export type { ProjetsReunions$Params as ProjetsReunions$Params } from './fn/projets/projets-reunions';
@@ -91,6 +93,10 @@ export type { ProjetsSessions$Params as ProjetsSessions$Params } from './fn/proj
 export { projetsSessions as projetsSessions } from './fn/projets/projets-sessions';
 export type { ProjetsJournal$Params as ProjetsJournal$Params } from './fn/projets/projets-journal';
 export { projetsJournal as projetsJournal } from './fn/projets/projets-journal';
+export type { EcritureModifierTache$Params as EcritureModifierTache$Params } from './fn/projets/ecriture-modifier-tache';
+export { ecritureModifierTache as ecritureModifierTache } from './fn/projets/ecriture-modifier-tache';
+export type { EcritureStatutFonctionnalite$Params as EcritureStatutFonctionnalite$Params } from './fn/projets/ecriture-statut-fonctionnalite';
+export { ecritureStatutFonctionnalite as ecritureStatutFonctionnalite } from './fn/projets/ecriture-statut-fonctionnalite';
 export type { JournalEnregistrer$Params as JournalEnregistrer$Params } from './fn/journal/journal-enregistrer';
 export { journalEnregistrer as journalEnregistrer } from './fn/journal/journal-enregistrer';
 export type { JournalDemarrer$Params as JournalDemarrer$Params } from './fn/journal/journal-demarrer';

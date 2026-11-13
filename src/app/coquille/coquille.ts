@@ -1,103 +1,163 @@
-import { Component, computed, inject, signal, viewChild } from '@angular/core';
-import { ActivatedRoute, NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
-import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
-import { MatSidenav, MatSidenavModule } from '@angular/material/sidenav';
+import { Component, DestroyRef, computed, effect, inject, signal } from '@angular/core';
+import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { BreakpointObserver } from '@angular/cdk/layout';
+import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { NgScrollbarModule } from 'ngx-scrollbar';
+import { MatMenuModule } from '@angular/material/menu';
+import { MatDividerModule } from '@angular/material/divider';
 import { filter } from 'rxjs';
 import { ThemeService } from '../core/services/theme.service';
 import { ThemePickerComponent } from '../shared/components/theme-picker/theme-picker.component';
+import { AppNotification, CommandPaletteService, KbdComponent, NotificationCenterComponent, PaletteCommand } from '../shared/components/interaction';
 import { AuthService } from '../noyau/auth.service';
+import { NavigationService, ONGLETS_PROJET } from '../noyau/navigation.service';
 
-interface EntreeMenu { libelle: string; icone: string; lien: string; exact?: boolean }
+interface Entree { label: string; icon: string; path: string; exact?: boolean; badge?: number | null }
+interface Groupe { label: string; icon: string; items: Entree[]; collapsible?: boolean }
+
 
 /**
- * Coquille de l'application, reprise de l'app-shell du UI-Kit : rail d'icônes, barre d'outils
- * (titre de page, thème, compte) et panneau droit du compte.
+ * Coquille de l'application — reprend la sidenav et la barre d'outils des écrans d'exemple du UI-Kit
+ * (examples/app/ex-app-shell) : carte flottante sans ombre, recherche, sections titrées, palette ⌘K,
+ * centre de notifications, menu du compte.
  */
 @Component({
   selector: 'app-coquille',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, MatSidenavModule, MatToolbarModule, MatIconModule, MatButtonModule, MatTooltipModule, NgScrollbarModule, ThemePickerComponent],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, MatSidenavModule, MatToolbarModule, MatIconModule, MatButtonModule, MatTooltipModule, MatMenuModule, MatDividerModule,
+    ThemePickerComponent, NotificationCenterComponent, KbdComponent],
   styleUrl: './coquille.scss',
   template: `
-  <mat-sidenav-container class="shell-container" autosize>
-    <mat-sidenav #rail class="shell-sidenav" [mode]="mobile() ? 'over' : 'side'" [opened]="!mobile()">
+  <mat-sidenav-container class="kit-container">
+    <mat-sidenav #sidenav class="kit-sidenav" [mode]="mobile() ? 'over' : 'side'" [opened]="!mobile()">
       <div class="sidenav-inner">
-        <div class="sidenav-header"><a routerLink="/" class="brand-mark" matTooltip="Pilotage" matTooltipPosition="right"><mat-icon>insights</mat-icon></a></div>
-        <ng-scrollbar class="nav-scrollbar" visibility="hover">
-          <nav class="nav-rail">
-            @for (m of menu; track m.lien) {
-              <a class="nav-rail-item" [routerLink]="m.lien" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: !!m.exact }"
-                 [matTooltip]="m.libelle" matTooltipPosition="right" (click)="mobile() && rail.close()">
-                <mat-icon>{{ m.icone }}</mat-icon><span class="lbl">{{ m.libelle }}</span>
-              </a>
-            }
-          </nav>
-        </ng-scrollbar>
-        <button type="button" class="user-avatar-btn" [matTooltip]="auth.utilisateur()?.nom" matTooltipPosition="right" (click)="compte.open()">
-          @if (auth.utilisateur()?.photo_url) { <img class="avatar" [src]="auth.utilisateur()!.photo_url" alt="" referrerpolicy="no-referrer" style="object-fit: cover" /> } @else { <div class="avatar">{{ initiales() }}</div> }
-        </button>
-      </div>
-    </mat-sidenav>
-
-    <mat-sidenav-content>
-      <mat-toolbar class="shell-toolbar">
-        <button mat-icon-button (click)="rail.toggle()" aria-label="Menu"><mat-icon>{{ rail.opened ? 'menu_open' : 'menu' }}</mat-icon></button>
-        <span class="page-title">{{ titre() }}</span>
-        <span class="spacer"></span>
-        <button mat-icon-button (click)="theme.toggle()" [matTooltip]="theme.mode() === 'light' ? 'Mode sombre' : 'Mode clair'">
-          <mat-icon>{{ theme.mode() === 'light' ? 'dark_mode' : 'light_mode' }}</mat-icon>
-        </button>
-        <app-theme-picker />
-        <button mat-icon-button class="avatar-btn" (click)="compte.open()" matTooltip="Mon compte">@if (auth.utilisateur()?.photo_url) { <img class="avatar" [src]="auth.utilisateur()!.photo_url" alt="" referrerpolicy="no-referrer" style="object-fit: cover" /> } @else { <div class="avatar">{{ initiales() }}</div> }</button>
-      </mat-toolbar>
-      <ng-scrollbar class="content-area" visibility="hover">
-        <router-outlet />
-      </ng-scrollbar>
-    </mat-sidenav-content>
-
-    <mat-sidenav #compte class="right-drawer" position="end" mode="over">
-      <div class="sidenav-inner">
-        <div class="compte">
-          <div class="tete">
-            @if (auth.utilisateur()?.photo_url) { <img class="avatar lg" [src]="auth.utilisateur()!.photo_url" alt="" referrerpolicy="no-referrer" style="object-fit: cover" /> } @else { <div class="avatar lg">{{ initiales() }}</div> }
-            <div class="id"><strong>{{ auth.utilisateur()?.nom }}</strong><small>{{ auth.utilisateur()?.email }}</small></div>
-            <span class="spacer"></span>
-            <button mat-icon-button (click)="compte.close()" aria-label="Fermer"><mat-icon>close</mat-icon></button>
+        <div class="sidenav-header">
+          <span class="brand-logo brand-mark"><mat-icon>insights</mat-icon></span>
+          <div class="header-text"><span class="app-title">Pilotage</span><span class="app-subtitle">{{ espace() }}</span></div>
+          @if (mobile()) { <button mat-icon-button (click)="sidenav.close()" class="close-drawer-btn" aria-label="Fermer le menu"><mat-icon>chevron_left</mat-icon></button> }
+        </div>
+        <div class="nav-search">
+          <mat-icon>search</mat-icon>
+          <input type="text" placeholder="Rechercher une page, un projet…" [value]="recherche()" (input)="recherche.set($any($event.target).value)" />
+          @if (recherche()) { <button type="button" class="clear" (click)="recherche.set('')" aria-label="Effacer"><mat-icon>close</mat-icon></button> }
+        </div>
+        <div class="sidenav-menu-wrapper" (click)="mobile() && $any($event.target).closest('a') && sidenav.close()">
+          <div class="menu-section">
+            @for (n of haut; track n.path) { @if (correspond(n.label)) {
+              <a class="menu-item top" [routerLink]="n.path" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: !!n.exact }"><mat-icon class="item-icon">{{ n.icon }}</mat-icon><span class="item-label">{{ n.label }}</span></a>
+            } }
           </div>
-          <div class="lignes">
-            <a routerLink="/parametres/compte" (click)="compte.close()"><mat-icon>person</mat-icon>Mon compte</a>
-            <a routerLink="/parametres/securite" (click)="compte.close()"><mat-icon>shield</mat-icon>Sécurité et sessions</a>
-            <button (click)="theme.toggle()"><mat-icon>contrast</mat-icon>{{ theme.mode() === 'light' ? 'Passer en mode sombre' : 'Passer en mode clair' }}</button>
-            <button (click)="compte.close(); auth.deconnexion()"><mat-icon>logout</mat-icon>Se déconnecter</button>
-          </div>
-          <div class="bas">Rôle : {{ auth.utilisateur()?.role }} · dates en heure d'Abidjan (UTC+0)</div>
+          @for (g of groupes(); track g.label) { @if (groupeVisible(g)) {
+            <div class="menu-section">
+              @if (g.collapsible) {
+                <button type="button" class="section-header clickable" (click)="basculer(g.label)"><mat-icon class="section-icon">{{ g.icon }}</mat-icon><span class="section-title">{{ g.label }}</span><span class="spacer"></span><mat-icon class="chevron" [class.open]="ouvert(g.label)">expand_more</mat-icon></button>
+              } @else { <div class="section-header"><mat-icon class="section-icon">{{ g.icon }}</mat-icon><span class="section-title">{{ g.label }}</span></div> }
+              @if (!g.collapsible || ouvert(g.label) || recherche()) {
+                <div class="section-items">
+                  @for (n of g.items; track n.path) { @if (correspond(n.label) || correspond(g.label)) {
+                    <a class="menu-item" [routerLink]="n.path" routerLinkActive="active"><mat-icon class="item-icon">{{ n.icon }}</mat-icon><span class="item-label">{{ n.label }}</span>@if (n.badge) { <span class="count">{{ n.badge }}</span> }</a>
+                  } }
+                </div>
+              }
+            </div>
+          } }
         </div>
       </div>
     </mat-sidenav>
+
+    <mat-sidenav-content class="kit-main">
+      <mat-toolbar class="kit-toolbar">
+        <button mat-icon-button (click)="sidenav.toggle()" [attr.aria-label]="sidenav.opened ? 'Masquer le menu' : 'Afficher le menu'"><mat-icon>{{ sidenav.opened ? 'menu_open' : 'menu' }}</mat-icon></button>
+        <span class="toolbar-title">@if (fil()) { <span class="crumb">{{ fil() }}</span><mat-icon class="sep">chevron_right</mat-icon> }<span class="cur">{{ titre() }}</span></span>
+        <span class="spacer"></span>
+        <button type="button" class="palette-btn" (click)="palette.open()" aria-label="Rechercher (⌘K)"><mat-icon>search</mat-icon><span class="pb-label">Rechercher…</span><app-kbd keys="mod+k" class="pb-kbd" /></button>
+        <button mat-icon-button class="hide-sm" (click)="theme.toggle()" [matTooltip]="theme.mode() === 'light' ? 'Mode sombre' : 'Mode clair'"><mat-icon>{{ theme.mode() === 'light' ? 'dark_mode' : 'light_mode' }}</mat-icon></button>
+        <app-theme-picker class="hide-sm" />
+        <app-notification-center [notifications]="notifications()" [manage]="false" [settings]="false" />
+        <button type="button" class="avatar-btn" [matMenuTriggerFor]="moi" aria-label="Mon compte">
+          @if (auth.utilisateur()?.photo_url) { <img class="avatar" [src]="auth.utilisateur()!.photo_url" alt="" referrerpolicy="no-referrer" style="object-fit: cover" /> } @else { <span class="avatar">{{ initiales() }}</span> }
+        </button>
+        <mat-menu #moi="matMenu" xPosition="before" class="m3-dropdown-menu">
+          <div class="menu-me"><strong>{{ auth.utilisateur()?.nom }}</strong><small>{{ auth.utilisateur()?.email }}</small></div>
+          <mat-divider />
+          <a mat-menu-item routerLink="/parametres/compte"><mat-icon>person</mat-icon>Mon compte</a>
+          <a mat-menu-item routerLink="/parametres/securite"><mat-icon>shield</mat-icon>Sécurité et sessions</a>
+          <button mat-menu-item (click)="palette.open()"><mat-icon>keyboard_command_key</mat-icon>Commandes<app-kbd class="menu-kbd" keys="mod+k" /></button>
+          <mat-divider />
+          <button mat-menu-item (click)="auth.deconnexion()"><mat-icon>logout</mat-icon>Se déconnecter</button>
+        </mat-menu>
+      </mat-toolbar>
+      <main class="content"><router-outlet /></main>
+    </mat-sidenav-content>
   </mat-sidenav-container>`,
 })
 export class Coquille {
   readonly auth = inject(AuthService);
   readonly theme = inject(ThemeService);
+  readonly palette = inject(CommandPaletteService);
+  readonly nav = inject(NavigationService);
   private readonly router = inject(Router);
   readonly mobile = signal(false);
-  readonly titre = signal('Pilotage');
-  readonly menu: EntreeMenu[] = [
-    { libelle: 'Portefeuille', icone: 'dashboard', lien: '/', exact: true },
-    { libelle: 'Paramètres', icone: 'settings', lien: '/parametres' },
-  ];
+  readonly recherche = signal('');
+  readonly titre = signal('Portefeuille');
+  readonly fil = signal('');
+  private readonly ouverts = signal<Record<string, boolean>>({ Projets: true });
+
+  readonly haut: Entree[] = [{ label: 'Portefeuille', icon: 'space_dashboard', path: '/', exact: true }];
+  readonly espace = computed(() => 'Espace de travail');
+  readonly groupes = computed<Groupe[]>(() => {
+    const g: Groupe[] = [];
+    const code = this.nav.projetCourant();
+    const p = this.nav.projet(code);
+    if (code) g.push({ label: p?.nom ?? code, icon: 'folder_open', items: ONGLETS_PROJET.map((o) => ({ label: o.label, icon: o.icon, path: `/projets/${code}/${o.seg}`,
+      badge: o.seg === 'synthese' ? (p?.nb_alertes.haute || null) : null })) });
+    const autres = (this.nav.projets() ?? []).filter((x) => x.code !== code);
+    if (autres.length) g.push({ label: 'Projets', icon: 'folder', collapsible: true, items: autres.map((x) => ({ label: x.nom, icon: 'folder', path: `/projets/${x.code}`, badge: x.nb_alertes.haute || null })) });
+    g.push({ label: 'Compte', icon: 'manage_accounts', items: [
+      { label: 'Mon compte', icon: 'person', path: '/parametres/compte' },
+      { label: 'Sécurité', icon: 'shield', path: '/parametres/securite' },
+    ] });
+    return g;
+  });
+  /** Alertes hautes du portefeuille dans le centre de notifications. */
+  readonly notifications = computed<AppNotification[]>(() => (this.nav.projets() ?? []).filter((p) => p.nb_alertes.haute).map((p) => ({
+    id: p.id, title: p.nom, message: `${p.nb_alertes.haute} alerte(s) haute(s) · ${p.nb_retours_ouverts} retour(s) client ouvert(s)`,
+    at: new Date(p.derniere_activite ?? Date.now()), icon: 'warning', tone: 'error', category: 'Alertes' })));
   readonly initiales = computed(() => (this.auth.utilisateur()?.nom ?? '?').split(/\s+/).filter(Boolean).map((n) => n[0]).join('').slice(0, 2).toUpperCase());
 
   constructor() {
-    inject(BreakpointObserver).observe([Breakpoints.Handset, Breakpoints.TabletPortrait]).subscribe((r) => this.mobile.set(r.matches));
-    this.router.events.pipe(filter((e) => e instanceof NavigationEnd)).subscribe(() => {
-      let r = this.router.routerState.snapshot.root; let t = 'Pilotage';
-      while (r) { if (r.data['titre']) t = r.data['titre']; r = r.firstChild!; }
-      this.titre.set(t);
+    inject(BreakpointObserver).observe('(max-width: 959.98px)').subscribe((r) => this.mobile.set(r.matches));
+    this.nav.chargerProjets();
+    this.router.events.pipe(filter((e) => e instanceof NavigationEnd)).subscribe(() => this.majTitre());
+    this.majTitre();
+    let desinscrire = () => {};
+    effect(() => {
+      desinscrire();
+      const cmds: PaletteCommand[] = [
+        { id: 'nav-portefeuille', label: 'Portefeuille', group: 'Aller à', icon: 'space_dashboard', route: '/' },
+        ...(this.nav.projets() ?? []).flatMap((p) => ONGLETS_PROJET.map((o) => ({ id: `nav-${p.code}-${o.seg}`, label: `${p.nom} — ${o.label}`, group: 'Projets', icon: o.icon, route: `/projets/${p.code}/${o.seg}` }))),
+        { id: 'nav-compte', label: 'Mon compte', group: 'Compte', icon: 'person', route: '/parametres/compte' },
+        { id: 'nav-securite', label: 'Sécurité et sessions', group: 'Compte', icon: 'shield', route: '/parametres/securite' },
+        { id: 'theme', label: 'Changer de thème clair / sombre', group: 'Actions', icon: 'contrast', action: () => this.theme.toggle() },
+        { id: 'deconnexion', label: 'Se déconnecter', group: 'Compte', icon: 'logout', action: () => this.auth.deconnexion() },
+      ];
+      desinscrire = this.palette.register(cmds);
     });
+    this.palette.enableHotkey();
+    inject(DestroyRef).onDestroy(() => desinscrire());
   }
+
+  private majTitre() {
+    let r = this.router.routerState.snapshot.root; let t = 'Portefeuille'; let f = '';
+    while (r) { if (r.data['titre']) t = r.data['titre']; if (r.data['fil']) f = r.data['fil']; r = r.firstChild!; }
+    const code = /^\/projets\/([^/?#]+)/.exec(this.router.url)?.[1];
+    if (code) f = this.nav.projet(decodeURIComponent(code))?.nom ?? decodeURIComponent(code);
+    this.titre.set(t); this.fil.set(f);
+  }
+  correspond(l: string) { const q = this.recherche().trim().toLowerCase(); return !q || l.toLowerCase().includes(q); }
+  groupeVisible(g: Groupe) { return this.correspond(g.label) || g.items.some((n) => this.correspond(n.label)); }
+  ouvert(l: string) { return !!this.ouverts()[l]; }
+  basculer(l: string) { this.ouverts.update((o) => ({ ...o, [l]: !o[l] })); }
 }

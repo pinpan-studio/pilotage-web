@@ -4,6 +4,7 @@ import { provideRouter, withComponentInputBinding, withInMemoryScrolling } from 
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { provideNativeDateAdapter, MAT_DATE_LOCALE } from '@angular/material/core';
 import { registerLocaleData } from '@angular/common';
+import { provideCharts, withDefaultRegisterables } from 'ng2-charts';
 import localeFr from '@angular/common/locales/fr';
 import { ApiConfiguration } from '../api/genere/api-configuration';
 import { routes } from './app.routes';
@@ -20,6 +21,7 @@ export const appConfig: ApplicationConfig = {
     provideZonelessChangeDetection(),
     provideRouter(routes, withComponentInputBinding(), withInMemoryScrolling({ scrollPositionRestoration: 'top' })),
     provideAnimationsAsync(),
+    provideCharts(withDefaultRegisterables()),
     provideNativeDateAdapter(),
     { provide: MAT_DATE_LOCALE, useValue: 'fr-FR' },
     provideHttpClient(withInterceptors([intercepteurAuth])),
