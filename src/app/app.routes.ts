@@ -3,14 +3,15 @@ import { CanActivateFn, Router, Routes } from '@angular/router';
 import { AuthService } from './noyau/auth.service';
 import { ReferentielsService } from './noyau/referentiels.service';
 
-const connecte: CanActivateFn = async () => {
+const connecte: CanActivateFn = async (_r, etat) => {
   const auth = inject(AuthService), router = inject(Router), ref = inject(ReferentielsService);
-  if (!auth.connecte() && !(await auth.rafraichir())) return router.parseUrl('/connexion');
+  if (!auth.connecte() && !(await auth.rafraichir())) return router.createUrlTree(['/connexion'], { queryParams: etat.url && etat.url !== '/' ? { retour: etat.url } : {} });
   await ref.charger().catch(() => undefined);
   return true;
 };
 
 export const routes: Routes = [
+  { path: 'autoriser', canActivate: [connecte], title: 'Autoriser un assistant — Pilotage', loadComponent: () => import('./pages/autoriser').then((m) => m.Autoriser) },
   { path: 'connexion', title: 'Connexion — Pilotage', loadComponent: () => import('./pages/connexion/connexion').then((m) => m.Connexion) },
   { path: '', canActivate: [connecte], loadComponent: () => import('./coquille/coquille').then((m) => m.Coquille), children: [
     { path: '', title: 'Portefeuille — Pilotage', data: { titre: 'Portefeuille' }, loadComponent: () => import('./pages/portefeuille').then((m) => m.Portefeuille) },

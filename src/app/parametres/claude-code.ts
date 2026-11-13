@@ -152,8 +152,8 @@ export class ParamClaudeCode {
         note: `Ou : gemini mcp add --transport http pilotage ${u} --header "Authorization: Bearer $PILOTAGE_TOKEN"` };
       case 'windsurf': return { aide: 'Windsurf (Codeium) : Cascade → MCP → « View raw config ».', fichier: '~/.codeium/windsurf/mcp_config.json',
         config: json({ mcpServers: { pilotage: { serverUrl: u, headers: { Authorization: 'Bearer ${env:PILOTAGE_TOKEN}' } } } }), note: '' };
-      default: return { aide: "ChatGPT (connecteurs, mode développeur) et claude.ai (connecteurs personnalisés) exigent une authentification OAuth : elle n'est pas encore disponible sur le serveur Pilotage (prévue en phase 3).", fichier: '',
-        config: '', note: 'En attendant, utilisez un assistant de bureau ou de terminal (Claude Code, Claude Desktop, Cursor, Codex, Gemini CLI…).' };
+      default: return { aide: "claude.ai et ChatGPT se connectent par OAuth : aucun jeton à copier. Ajoutez un connecteur avec l'URL ci-dessous, puis connectez-vous à Pilotage et choisissez le rôle accordé.", fichier: '',
+        config: u, note: "claude.ai : Paramètres → Connecteurs → Ajouter un connecteur personnalisé. ChatGPT : Paramètres → Applications et connecteurs → mode développeur → Créer. L'accès (30 jours, renouvelé automatiquement) apparaît ensuite dans la liste des jetons ci-dessous, où il est révocable." };
     }
   });
   copier(texte: string) { navigator.clipboard?.writeText(texte).then(() => this.snack.open('Copié', undefined, { duration: 1500 })).catch(() => undefined); }

@@ -147,6 +147,12 @@ export type { GestionResultats$Params as GestionResultats$Params } from './fn/sa
 export { gestionResultats as gestionResultats } from './fn/saisie/gestion-resultats';
 export type { GestionEcrireDocument$Params as GestionEcrireDocument$Params } from './fn/saisie/gestion-ecrire-document';
 export { gestionEcrireDocument as gestionEcrireDocument } from './fn/saisie/gestion-ecrire-document';
+export type { OAuthConsentementClient$Params as OAuthConsentementClient$Params } from './fn/oauth/o-auth-consentement-client';
+export { oAuthConsentementClient as oAuthConsentementClient } from './fn/oauth/o-auth-consentement-client';
+export type { OAuthConsentementApprouver$Params as OAuthConsentementApprouver$Params } from './fn/oauth/o-auth-consentement-approuver';
+export { oAuthConsentementApprouver as oAuthConsentementApprouver } from './fn/oauth/o-auth-consentement-approuver';
+export type { OAuthConsentementRefuser$Params as OAuthConsentementRefuser$Params } from './fn/oauth/o-auth-consentement-refuser';
+export { oAuthConsentementRefuser as oAuthConsentementRefuser } from './fn/oauth/o-auth-consentement-refuser';
 export type { JournalEnregistrer$Params as JournalEnregistrer$Params } from './fn/journal/journal-enregistrer';
 export { journalEnregistrer as journalEnregistrer } from './fn/journal/journal-enregistrer';
 export type { JournalDemarrer$Params as JournalDemarrer$Params } from './fn/journal/journal-demarrer';

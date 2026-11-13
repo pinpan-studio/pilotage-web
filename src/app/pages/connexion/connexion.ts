@@ -73,6 +73,8 @@ export class Connexion implements AfterViewInit {
   private readonly boutonGoogle = viewChild<ElementRef<HTMLElement>>('boutonGoogle');
   readonly emailVisible = signal(false);
   readonly invitation = new URLSearchParams(location.search).get('invitation');
+  /** Page demandée avant la connexion (chemin interne uniquement). */
+  retour() { const r = new URLSearchParams(location.search).get('retour') ?? '/'; return r.startsWith('/') && !r.startsWith('//') ? r : '/'; }
 
   ngAfterViewInit() {
     const hote = this.boutonGoogle()?.nativeElement;
@@ -82,7 +84,7 @@ export class Connexion implements AfterViewInit {
 
   async validerGoogle(credential: string) {
     this.erreur.set(''); this.enCours.set(true);
-    try { await this.auth.connexionGoogle(credential); this.router.navigateByUrl('/'); }
+    try { await this.auth.connexionGoogle(credential); this.router.navigateByUrl(this.retour()); }
     catch (e: any) { this.erreur.set(e?.error?.message ?? (e?.status === 0 ? 'API injoignable : vérifiez la connexion internet.' : 'Connexion Google refusée.')); }
     finally { this.enCours.set(false); }
   }
@@ -91,7 +93,7 @@ export class Connexion implements AfterViewInit {
   readonly erreur = signal(''); readonly enCours = signal(false); readonly voir = signal(false);
   async valider() {
     this.erreur.set(''); this.enCours.set(true);
-    try { await this.auth.connexion(this.email, this.mdp); this.router.navigateByUrl('/'); }
+    try { await this.auth.connexion(this.email, this.mdp); this.router.navigateByUrl(this.retour()); }
     catch (e: any) { this.erreur.set(e?.status === 401 ? 'Identifiants incorrects.' : e?.status === 0 ? 'API injoignable : vérifiez la connexion internet.' : 'Erreur de connexion.'); }
     finally { this.enCours.set(false); }
   }
