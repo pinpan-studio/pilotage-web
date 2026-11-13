@@ -27,9 +27,10 @@ export class ProjetCourant {
   }
 }
 
+import { Chargement } from '../noyau/chargement';
 @Component({
   selector: 'app-projet',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, MatIconModule, MatButtonModule, Statut, EmptyStateComponent, ...PIPES],
+  imports: [Chargement, RouterOutlet, RouterLink, RouterLinkActive, MatIconModule, MatButtonModule, Statut, EmptyStateComponent, ...PIPES],
   providers: [ProjetCourant],
   template: `
   <div class="pl-page">
@@ -48,7 +49,7 @@ export class ProjetCourant {
         @for (o of onglets; track o.seg) { <a [routerLink]="o.seg" routerLinkActive="on"><mat-icon>{{ o.icon }}</mat-icon>{{ o.label }}</a> }
       </nav>
       <router-outlet />
-    } @else { <div class="loading">Chargement du projet…</div> }
+    } @else { <app-chargement forme="tableau-de-bord" /> }
   </div>`,
 })
 export class Projet {

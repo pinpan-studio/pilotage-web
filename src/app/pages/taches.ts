@@ -12,16 +12,17 @@ import { ReferentielsService } from '../noyau/referentiels.service';
 import { tonDeCouleur } from '../noyau/statut';
 import { date } from '../noyau/format';
 import { DataColumn, DataTableComponent } from '../shared/components/data/data-table.component';
-import { GanttTimelineComponent, KanbanBoardComponent, KanbanMove, MonthCalendarComponent, PlanningColumn, PlanningFilter, PlanningGroup, PlanningItem, PlanningTone } from '../shared/components/planning';
+import { AgendaViewComponent, GanttTimelineComponent, GroupedBoardComponent, KanbanBoardComponent, KanbanMove, MonthCalendarComponent, NoteGridComponent, PlanningColumn, PlanningFilter, PlanningGroup, PlanningItem, PlanningTone } from '../shared/components/planning';
 import { ProjetCourant } from './projet';
+import { Chargement } from '../noyau/chargement';
 
-type Vue = 'kanban' | 'liste' | 'chronologie' | 'calendrier';
+type Vue = 'kanban' | 'liste' | 'responsables' | 'notes' | 'chronologie' | 'calendrier' | 'agenda';
 interface Ligne { id: string; ref: string; action: string; statut: string; statut_code: string; responsable: string; echeance: string; retard: boolean; origine: string }
 
 /** Suivi des tâches (plan d'actions) : kanban glisser-déposer, liste, chronologie par responsable, calendrier. */
 @Component({
   selector: 'app-taches',
-  imports: [FormsModule, MatIconModule, MatButtonModule, MatButtonToggleModule, DataTableComponent, KanbanBoardComponent, GanttTimelineComponent, MonthCalendarComponent, ...PIPES],
+  imports: [FormsModule, MatIconModule, MatButtonModule, MatButtonToggleModule, DataTableComponent, KanbanBoardComponent, GanttTimelineComponent, MonthCalendarComponent, GroupedBoardComponent, NoteGridComponent, AgendaViewComponent, Chargement, ...PIPES],
   styles: [`.barre { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4); }
     .vues { --mat-standard-button-toggle-height: 36px; --mat-standard-button-toggle-label-text-size: var(--fs-body-sm); }
     .vues mat-icon { font-size: 18px; width: 18px; height: 18px; margin-right: 6px; vertical-align: -4px; }
@@ -35,10 +36,7 @@ interface Ligne { id: string; ref: string; action: string; statut: string; statu
   </div>
   <div class="barre">
     <mat-button-toggle-group class="vues" [value]="vue()" (change)="vue.set($event.value)" hideSingleSelectionIndicator aria-label="Vue">
-      <mat-button-toggle value="kanban"><mat-icon>view_kanban</mat-icon>Tableau</mat-button-toggle>
-      <mat-button-toggle value="liste"><mat-icon>list</mat-icon>Liste</mat-button-toggle>
-      <mat-button-toggle value="chronologie"><mat-icon>view_timeline</mat-icon>Chronologie</mat-button-toggle>
-      <mat-button-toggle value="calendrier"><mat-icon>calendar_month</mat-icon>Calendrier</mat-button-toggle>
+      @for (v of vues; track v.id) { <mat-button-toggle [value]="v.id"><mat-icon>{{ v.icone }}</mat-icon>{{ v.libelle }}</mat-button-toggle> }
     </mat-button-toggle-group>
     <span class="spacer"></span>
     <button mat-flat-button color="primary" (click)="formulaire.set(!formulaire())"><mat-icon>{{ formulaire() ? 'close' : 'add_task' }}</mat-icon>{{ formulaire() ? 'Fermer' : 'Nouvelle tâche' }}</button>
@@ -51,14 +49,19 @@ interface Ligne { id: string; ref: string; action: string; statut: string; statu
       <button mat-flat-button color="primary" type="submit" [disabled]="n.action.trim().length < 2 || enCours()">Créer</button>
     </form>
   }
+  @if (!charge()) { <app-chargement forme="planning" /> } @else {
   <section class="card plan">
     @switch (vue()) {
       @case ('kanban') { <app-kanban-board [columns]="colonnes()" [items]="cartes()" [searchable]="true" [lateToggle]="true" [filters]="filtres()" emptyLabel="Déposez une tâche ici" (itemMoved)="deplacer($event)" /> }
       @case ('liste') { <app-data-table [rows]="lignes()" [columns]="colonnesListe" rowKey="id" [pageSize]="25" maxHeight="none" (cellEdit)="editer($event)" /> }
       @case ('chronologie') { <app-gantt-timeline [items]="cartes()" [groups]="responsables()" rowLabel="Responsable" zoom="week" [searchable]="true" [lateToggle]="true" /> }
+      @case ('responsables') { <app-grouped-board [items]="cartes()" [groups]="responsables()" layout="list" [showProgress]="false" [searchable]="true" [lateToggle]="true" ungroupedLabel="Non attribuée" /> }
+      @case ('notes') { <app-note-grid [items]="cartes()" [minWidth]="240" [searchable]="true" [lateToggle]="true" [filters]="filtres()" emptyLabel="Aucune tâche" /> }
       @case ('calendrier') { <app-month-calendar [items]="cartes()" [showDayPanel]="true" [searchable]="true" [lateToggle]="true" /> }
+      @case ('agenda') { <app-agenda-view [items]="agenda()" view="week" [views]="['day', 'week', 'month']" [workWeek]="true" [startHour]="8" [endHour]="18" [searchable]="true" [lateToggle]="true" [filters]="filtres()" /> }
     }
-  </section>`,
+  </section>
+  }`,
 })
 export class Taches {
   readonly p = inject(ProjetCourant);
@@ -66,6 +69,15 @@ export class Taches {
   private readonly ref = inject(ReferentielsService);
   private readonly snack = inject(MatSnackBar);
   readonly vue = signal<Vue>('kanban');
+  readonly vues: { id: Vue; libelle: string; icone: string }[] = [
+    { id: 'kanban', libelle: 'Kanban', icone: 'view_kanban' }, { id: 'liste', libelle: 'Liste', icone: 'list' },
+    { id: 'responsables', libelle: 'Par responsable', icone: 'groups' }, { id: 'notes', libelle: 'Notes', icone: 'sticky_note_2' },
+    { id: 'chronologie', libelle: 'Chronologie', icone: 'view_timeline' }, { id: 'calendrier', libelle: 'Calendrier', icone: 'calendar_month' },
+    { id: 'agenda', libelle: 'Agenda', icone: 'event_note' },
+  ];
+  readonly charge = signal(false);
+  /** Agenda : échéance à 9 h, durée d'une heure. */
+  readonly agenda = computed<PlanningItem[]>(() => this.cartes().filter((c) => c.due).map((c) => { const j = String(c.due).slice(0, 10); return { ...c, start: `${j}T09:00:00`, end: `${j}T10:00:00` }; }));
   readonly taches = signal<Action[]>([]);
   readonly formulaire = signal(false);
   readonly enCours = signal(false);
@@ -109,7 +121,7 @@ export class Taches {
     effect(() => { const c = this.p.code(); if (c) this.charger(); });
     effect(() => { this.colonnesListe[2].options = (this.ref.donnees()?.statuts_action ?? []).map((s) => ({ value: s.code, label: s.libelle })); });
   }
-  charger() { this.api.invoke(projetsActions, { code: this.p.code() }).then((l) => this.taches.set(l)); }
+  charger() { this.api.invoke(projetsActions, { code: this.p.code() }).then((l) => { this.taches.set(l); this.charge.set(true); }); }
   private erreur(e: any) { this.snack.open(e?.error?.message ?? 'Modification impossible', 'Fermer', { duration: 5000 }); this.charger(); }
 
   async creer() {

@@ -25,9 +25,10 @@ const TON_EVT: Record<string, string> = { commit: 'success', doc: 'purple', agen
 interface Surveillance { id: string; ref: string; titre: string; statut: string; statut_code: string; raison: string; avancement: number; activite: string }
 
 /** Vue d'ensemble d'un projet — composition du tableau de bord du ui-kit (examples/app/dashboard). */
+import { Chargement } from '../noyau/chargement';
 @Component({
   selector: 'app-synthese',
-  imports: [DecimalPipe, RouterLink, MatIconModule, MatProgressBarModule, BaseChartDirective, StatCounterComponent, DataTableComponent, BannerComponent, Statut, ...PIPES],
+  imports: [Chargement, DecimalPipe, RouterLink, MatIconModule, MatProgressBarModule, BaseChartDirective, StatCounterComponent, DataTableComponent, BannerComponent, Statut, ...PIPES],
   template: `
   @if (p.indicateurs(); as m) {
     @if (nbHautes(); as n) {
@@ -111,7 +112,7 @@ interface Surveillance { id: string; ref: string; titre: string; statut: string;
 
       <app-data-table class="wide" title="Fonctionnalités à surveiller" [rows]="surveillance()" [columns]="colonnes" [pageSize]="6" maxHeight="none" [searchable]="false" clickable (rowClick)="ouvrir($event)" />
     </div>
-  } @else { <div class="loading">Chargement…</div> }`,
+  } @else { <app-chargement forme="tableau-de-bord" /> }`,
 })
 export class Synthese {
   readonly p = inject(ProjetCourant);

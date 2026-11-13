@@ -19,9 +19,10 @@ export function decrireAppareil(ua: string) {
   return { libelle: os ? `${nav} sur ${os}` : nav, icone: mobile ? 'smartphone' : 'computer' };
 }
 
+import { Chargement } from '../noyau/chargement';
 @Component({
   selector: 'app-securite',
-  imports: [MatButtonModule, MatIconModule, ...PIPES],
+  imports: [Chargement, MatButtonModule, MatIconModule, ...PIPES],
   styleUrl: './parametres.scss',
   host: { style: 'display: contents' },
   template: `
@@ -35,7 +36,7 @@ export function decrireAppareil(ua: string) {
         @if (s.courante) { <button mat-stroked-button (click)="auth.deconnexion()">Se déconnecter</button> }
         @else { <button mat-stroked-button color="warn" (click)="revoquer(s)">Révoquer</button> }
       </div>
-    } @empty { <div class="loading">Chargement…</div> }
+    } @empty { <app-chargement forme="parametres" [lignes]="3" /> }
     @if (sessions().length > 1) { <footer><button mat-flat-button color="warn" (click)="revoquerAutres()"><mat-icon>logout</mat-icon>Déconnecter les autres appareils</button></footer> }
   </section>`,
 })

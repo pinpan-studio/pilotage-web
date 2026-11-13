@@ -14,9 +14,10 @@ import { ProjetCourant } from './projet';
 
 interface Ligne { id: string; code: string; titre: string; statut: string; statut_code: string; version: string; echeance: string; retard: boolean; responsable: string; producteur: string; }
 
+import { Chargement } from '../noyau/chargement';
 @Component({
   selector: 'app-livrables',
-  imports: [MatIconModule, DataTableComponent, ...PIPES],
+  imports: [Chargement, MatIconModule, DataTableComponent, ...PIPES],
   template: `
   @if (p.indicateurs(); as m) {
     <div class="kpis">@for (ph of m.documents_par_phase; track ph.code) {
@@ -27,7 +28,8 @@ interface Ligne { id: string; code: string; titre: string; statut: string; statu
     <button type="button" class="chip-filter" [class.on]="!phase()" (click)="phase.set('')">Toutes les phases<span class="n">{{ docs().length }}</span></button>
     @for (ph of phases(); track ph.code) { <button type="button" class="chip-filter" [class.on]="phase() === ph.code" (click)="phase.set(ph.code)">{{ ph.titre }}<span class="n">{{ ph.nb }}</span></button> }
   </div>
-  <section class="card"><app-data-table [rows]="lignes()" [columns]="colonnes" rowKey="id" [pageSize]="50" maxHeight="none" clickable (rowClick)="ouvrir($event)" /></section>`,
+  @if (charge()) { <section class="card"><app-data-table [rows]="lignes()" [columns]="colonnes" rowKey="id" [pageSize]="50" maxHeight="none" clickable (rowClick)="ouvrir($event)" /></section> }
+  @else { <app-chargement forme="table" [lignes]="10" /> }`,
 })
 export class Livrables {
   readonly p = inject(ProjetCourant);
@@ -35,6 +37,7 @@ export class Livrables {
   private readonly ref = inject(ReferentielsService);
   private readonly router = inject(Router);
   readonly docs = signal<DocumentDto[]>([]);
+  readonly charge = signal(false);
   readonly phase = signal('');
   readonly colonnes: DataColumn<Ligne>[] = [
     { key: 'code', label: 'Code', type: 'mono', sortable: true, width: 150, required: true },
@@ -54,13 +57,13 @@ export class Livrables {
       responsable: d.responsable || '—', producteur: this.ref.libelle(d.producteur),
     }));
   });
-  constructor() { effect(() => { const c = this.p.code(); if (c) this.api.invoke(projetsDocuments, { code: c }).then((l) => this.docs.set(l)); }); }
+  constructor() { effect(() => { const c = this.p.code(); if (c) this.api.invoke(projetsDocuments, { code: c }).then((l) => { this.docs.set(l); this.charge.set(true); }); }); }
   ouvrir(l: Ligne) { this.router.navigate(['/projets', this.p.code(), 'livrables', l.code]); }
 }
 
 @Component({
   selector: 'app-document',
-  imports: [RouterLink, MatIconModule, Statut, EmptyStateComponent, ...PIPES],
+  imports: [Chargement, RouterLink, MatIconModule, Statut, EmptyStateComponent, ...PIPES],
   template: `
   <a routerLink=".." class="crumbs" style="text-decoration: none"><mat-icon>arrow_back</mat-icon>Tous les livrables</a>
   @if (d(); as d) {
@@ -85,7 +88,7 @@ export class Livrables {
           } @empty { <p class="muted" style="padding: 0 20px">Aucune version.</p> }</div></section>
       </aside>
     </div>
-  } @else { <div class="loading">Chargement…</div> }`,
+  } @else { <app-chargement forme="document" /> }`,
 })
 export class Document {
   private readonly p = inject(ProjetCourant);

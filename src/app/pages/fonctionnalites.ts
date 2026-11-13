@@ -15,9 +15,10 @@ import { ProjetCourant } from './projet';
 
 interface Ligne { id: string; ref: string; titre: string; lot: string; poids: number; statut: string; statut_code: string; depots: string; avancement: number; tests: number; activite: string; }
 
+import { Chargement } from '../noyau/chargement';
 @Component({
   selector: 'app-fonctionnalites',
-  imports: [FormsModule, MatIconModule, DataTableComponent, ...PIPES],
+  imports: [Chargement, FormsModule, MatIconModule, DataTableComponent, ...PIPES],
   template: `
   <div class="toolbar-row">
     @for (s of filtresStatut(); track s.code) {
@@ -26,9 +27,11 @@ interface Ligne { id: string; ref: string; titre: string; lot: string; poids: nu
     <span class="spacer"></span>
     <select class="select-chip" [ngModel]="depot()" (ngModelChange)="depot.set($event)" aria-label="Dépôt"><option value="">Tous les dépôts</option>@for (d of p.detail()?.depots ?? []; track d.id) { <option [value]="d.nom">{{ d.nom }}</option> }</select>
   </div>
+  @if (charge()) {
   <section class="card">
     <app-data-table [rows]="lignes()" [columns]="colonnes" rowKey="id" [pageSize]="25" maxHeight="none" clickable (rowClick)="ouvrir($event)" />
-  </section>`,
+  </section>
+  } @else { <app-chargement forme="table" [lignes]="9" /> }`,
 })
 export class Fonctionnalites {
   readonly p = inject(ProjetCourant);
@@ -36,6 +39,7 @@ export class Fonctionnalites {
   private readonly api = inject(Api);
   private readonly router = inject(Router);
   readonly liste = signal<FonctionnaliteDto[]>([]);
+  readonly charge = signal(false);
   readonly statut = signal(''); readonly depot = signal('');
   readonly colonnes: DataColumn<Ligne>[] = [
     { key: 'ref', label: 'Réf.', type: 'mono', sortable: true, width: 90, required: true },
@@ -59,13 +63,13 @@ export class Fonctionnalites {
       depots: f.depots.map((d) => `${d.depot} : ${this.ref.libelle(d.statut)}`).join(' · ') || '—',
       avancement: Math.round(f.avancement * 100), tests: f.cas_test.length, activite: date(f.derniere_activite),
     })));
-  constructor() { effect(() => { const c = this.p.code(); if (c) this.api.invoke(projetsFonctionnalites, { code: c }).then((l) => this.liste.set(l)); }); }
+  constructor() { effect(() => { const c = this.p.code(); if (c) this.api.invoke(projetsFonctionnalites, { code: c }).then((l) => { this.liste.set(l); this.charge.set(true); }); }); }
   ouvrir(l: Ligne) { this.router.navigate(['/projets', this.p.code(), 'fonctionnalites', l.ref]); }
 }
 
 @Component({
   selector: 'app-fonctionnalite',
-  imports: [RouterLink, MatIconModule, Statut, EmptyStateComponent, ...PIPES],
+  imports: [Chargement, RouterLink, MatIconModule, Statut, EmptyStateComponent, ...PIPES],
   template: `
   <a routerLink=".." class="crumbs" style="text-decoration: none"><mat-icon>arrow_back</mat-icon>Toutes les fonctionnalités</a>
   @if (f(); as f) {
@@ -96,7 +100,7 @@ export class Fonctionnalites {
           <dt>Dernière activité</dt><dd>{{ f.derniere_activite | dateFr: true }}</dd>
         </dl></div></aside>
     </div>
-  } @else { <div class="loading">Chargement…</div> }`,
+  } @else { <app-chargement forme="document" /> }`,
 })
 export class Fonctionnalite {
   private readonly p = inject(ProjetCourant);

@@ -10,9 +10,10 @@ import { AuthService } from '../noyau/auth.service';
 import { PIPES } from '../noyau/pipes';
 import { ThemeSettingsComponent } from '../shared/components/theme-picker/theme-picker.component';
 
+import { Chargement } from '../noyau/chargement';
 @Component({
   selector: 'app-compte',
-  imports: [FormsModule, MatButtonModule, MatIconModule, ThemeSettingsComponent, ...PIPES],
+  imports: [Chargement, FormsModule, MatButtonModule, MatIconModule, ThemeSettingsComponent, ...PIPES],
   styleUrl: './parametres.scss',
   host: { style: 'display: contents' },
   template: `
@@ -47,7 +48,7 @@ import { ThemeSettingsComponent } from '../shared/components/theme-picker/theme-
       <div class="set inline"><span class="ic-tile"><mat-icon>schedule</mat-icon></span><div class="s-lbl"><strong>Dernière connexion</strong><small>{{ p.derniere_connexion | dateFr: true }}</small></div></div>
     </section>
     <section class="card pane"><header><h2>Apparence</h2><p>Thème de l'interface, mémorisé sur cet appareil.</p></header><app-theme-settings /></section>
-  } @else { <div class="loading">Chargement…</div> }`,
+  } @else { <app-chargement forme="parametres" [lignes]="5" /> }`,
 })
 export class Compte {
   private readonly api = inject(Api);
