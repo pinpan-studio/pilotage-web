@@ -3,6 +3,8 @@ import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { versDate, versIso } from '../noyau/dates';
 import { Api } from '../../api/genere/api';
 import { ecritureModifierTache, projetsActions } from '../../api/genere/functions';
 import { Action } from '../../api/genere/models';
@@ -17,7 +19,7 @@ import { ProjetCourant } from './projet';
 /** Détail d'une tâche — gabarit de documentation du ui-kit (examples/app/docs), avec édition. */
 @Component({
   selector: 'app-tache',
-  imports: [FormsModule, MatButtonModule, MatIconModule, Statut, Lecteur, Chargement, ...PIPES],
+  imports: [FormsModule, MatButtonModule, MatIconModule, MatDatepickerModule, Statut, Lecteur, Chargement, ...PIPES],
   styles: [`.champs { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); margin: var(--space-2) 0 var(--space-4); @media (max-width: 700px) { grid-template-columns: 1fr; } }
     .actions { display: flex; gap: var(--space-2); justify-content: flex-end; }
     .statuts { display: flex; flex-wrap: wrap; gap: var(--space-2); }`],
@@ -34,7 +36,7 @@ import { ProjetCourant } from './projet';
         <div class="form-field"><label class="field-label">Tâche</label><div class="field-box"><input [(ngModel)]="f.action" name="a" /></div></div>
         <div class="champs">
           <div class="form-field"><label class="field-label">Responsable</label><div class="field-box"><mat-icon>person</mat-icon><input [(ngModel)]="f.responsable" name="r" /></div></div>
-          <div class="form-field"><label class="field-label">Échéance</label><div class="field-box"><input type="date" [(ngModel)]="f.echeance" name="e" /></div></div>
+          <div class="form-field"><label class="field-label">Échéance</label><div class="field-box"><input name="e" [matDatepicker]="dpT" [(ngModel)]="f.echeance" placeholder="jj/mm/aaaa" /><mat-datepicker-toggle [for]="dpT" /><mat-datepicker #dpT /></div></div>
         </div>
         <div class="actions"><button mat-button (click)="reinit(t)">Annuler</button><button mat-flat-button color="primary" (click)="enregistrerFormulaire()" [disabled]="f.action.trim().length < 2">Enregistrer</button></div>
         <h2 id="origine">Origine</h2>
@@ -57,7 +59,7 @@ export class Tache {
   readonly refT = input.required<string>({ alias: 'ref' });
   readonly taches = signal<Action[]>([]);
   readonly t = computed(() => this.taches().find((x) => x.ref === this.refT()) ?? null);
-  f = { action: '', responsable: '', echeance: '' };
+  f: { action: string; responsable: string; echeance: Date | null } = { action: '', responsable: '', echeance: null };
   readonly sommaire = [{ id: 'statut', texte: 'Statut', niveau: 2 as const }, { id: 'details', texte: 'Détails', niveau: 2 as const }, { id: 'origine', texte: 'Origine', niveau: 2 as const }];
   readonly arbre = computed<GroupeLecteur[]>(() => (this.ref.donnees()?.statuts_action ?? []).map((s) => ({ libelle: s.libelle, icone: 'task_alt',
     feuilles: this.taches().filter((x) => x.statut === s.code).map((x) => ({ id: x.ref, ref: x.ref, libelle: x.action, lien: ['/projets', this.p.code(), 'taches', x.ref], couleur: this.g.ton(tonDeCouleur(s.couleur)) })) }))
@@ -67,8 +69,8 @@ export class Tache {
     effect(() => { const t = this.t(); if (t) this.reinit(t); });
   }
   enRetard(t: Action) { return !!t.echeance && ['a_faire', 'en_cours'].includes(t.statut) && t.echeance < (this.p.indicateurs()?.date_calcul ?? ''); }
-  reinit(t: Action) { this.f = { action: t.action, responsable: t.responsable, echeance: t.echeance ?? '' }; }
-  enregistrerFormulaire() { this.enregistrer({ action: this.f.action.trim(), responsable: this.f.responsable.trim(), echeance: this.f.echeance || null }); }
+  reinit(t: Action) { this.f = { action: t.action, responsable: t.responsable, echeance: versDate(t.echeance) }; }
+  enregistrerFormulaire() { this.enregistrer({ action: this.f.action.trim(), responsable: this.f.responsable.trim(), echeance: versIso(this.f.echeance) }); }
   async enregistrer(body: { statut?: Action['statut']; action?: string; responsable?: string; echeance?: string | null }) {
     const t = this.t(); if (!t) return;
     try {

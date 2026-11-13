@@ -3,6 +3,8 @@ import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { versIso } from '../noyau/dates';
 import { Api } from '../../api/genere/api';
 import { ecritureCreerTache, ecritureModifierTache, projetsActions, projetsDocuments } from '../../api/genere/functions';
 import { Action, DocumentDto } from '../../api/genere/models';
@@ -20,7 +22,7 @@ type Vue = 'kanban' | 'timeline' | 'agenda';
 /** Tâches : kanban (glisser-déposer), planning en timeline (jalons, livrables, tâches par responsable) et agenda. */
 @Component({
   selector: 'app-taches',
-  imports: [FormsModule, MatIconModule, MatButtonModule, KanbanBoardComponent, GanttTimelineComponent, AgendaViewComponent, Chargement, ...PIPES],
+  imports: [FormsModule, MatIconModule, MatButtonModule, MatDatepickerModule, KanbanBoardComponent, GanttTimelineComponent, AgendaViewComponent, Chargement, ...PIPES],
   styles: [`.barre { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4); }
     .vues { --mat-standard-button-toggle-height: 36px; --mat-standard-button-toggle-label-text-size: var(--fs-body-sm); }
     .vues mat-icon { font-size: 18px; width: 18px; height: 18px; margin-right: 6px; vertical-align: -4px; }
@@ -43,7 +45,7 @@ type Vue = 'kanban' | 'timeline' | 'agenda';
     <form class="card nouvelle" (ngSubmit)="creer()">
       <div class="form-field"><label class="field-label">Tâche</label><div class="field-box"><input name="t" [(ngModel)]="n.action" placeholder="Ex. Relancer le client pour les accès" required /></div></div>
       <div class="form-field"><label class="field-label">Responsable</label><div class="field-box"><input name="r" [(ngModel)]="n.responsable" placeholder="Nom" /></div></div>
-      <div class="form-field"><label class="field-label">Échéance</label><div class="field-box"><input name="e" type="date" [(ngModel)]="n.echeance" /></div></div>
+      <div class="form-field"><label class="field-label">Échéance</label><div class="field-box"><input name="e" [matDatepicker]="dpN" [(ngModel)]="n.echeance" placeholder="jj/mm/aaaa" /><mat-datepicker-toggle [for]="dpN" /><mat-datepicker #dpN /></div></div>
       <button mat-flat-button color="primary" type="submit" [disabled]="n.action.trim().length < 2 || enCours()">Créer</button>
     </form>
   }
@@ -76,7 +78,7 @@ export class Taches {
   private readonly router = inject(Router);
   readonly formulaire = signal(false);
   readonly enCours = signal(false);
-  n = { action: '', responsable: '', echeance: '' };
+  n: { action: string; responsable: string; echeance: Date | null } = { action: '', responsable: '', echeance: null };
 
   private aujourdhui() { return this.p.indicateurs()?.date_calcul ?? new Date().toISOString().slice(0, 10); }
   private enRetard(a: Action) { return !!a.echeance && ['a_faire', 'en_cours'].includes(a.statut) && a.echeance < this.aujourdhui(); }
@@ -138,8 +140,8 @@ export class Taches {
   async creer() {
     this.enCours.set(true);
     try {
-      const t = await this.api.invoke(ecritureCreerTache, { code: this.p.code(), body: { action: this.n.action.trim(), responsable: this.n.responsable.trim() || undefined, echeance: this.n.echeance || undefined } });
-      this.taches.update((l) => [...l, t]); this.n = { action: '', responsable: '', echeance: '' };
+      const t = await this.api.invoke(ecritureCreerTache, { code: this.p.code(), body: { action: this.n.action.trim(), responsable: this.n.responsable.trim() || undefined, echeance: versIso(this.n.echeance) ?? undefined } });
+      this.taches.update((l) => [...l, t]); this.n = { action: '', responsable: '', echeance: null };
       this.snack.open(`Tâche ${t.ref} créée`, undefined, { duration: 2500 });
     } catch (e) { this.erreur(e); } finally { this.enCours.set(false); }
   }

@@ -2,7 +2,8 @@ import { ApplicationConfig, LOCALE_ID, inject, provideAppInitializer, provideBro
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { provideRouter, withComponentInputBinding, withInMemoryScrolling } from '@angular/router';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
-import { provideNativeDateAdapter, MAT_DATE_LOCALE } from '@angular/material/core';
+import { DateAdapter, MAT_DATE_FORMATS, MAT_DATE_LOCALE } from '@angular/material/core';
+import { AdaptateurDateFr, FORMATS_DATE_FR } from './noyau/dates';
 import { registerLocaleData } from '@angular/common';
 import { provideCharts, withDefaultRegisterables } from 'ng2-charts';
 import localeFr from '@angular/common/locales/fr';
@@ -22,7 +23,8 @@ export const appConfig: ApplicationConfig = {
     provideRouter(routes, withComponentInputBinding(), withInMemoryScrolling({ scrollPositionRestoration: 'top' })),
     provideAnimationsAsync(),
     provideCharts(withDefaultRegisterables()),
-    provideNativeDateAdapter(),
+    { provide: DateAdapter, useClass: AdaptateurDateFr },
+    { provide: MAT_DATE_FORMATS, useValue: FORMATS_DATE_FR },
     { provide: MAT_DATE_LOCALE, useValue: 'fr-FR' },
     provideHttpClient(withInterceptors([intercepteurAuth])),
     { provide: LOCALE_ID, useValue: 'fr-FR' },

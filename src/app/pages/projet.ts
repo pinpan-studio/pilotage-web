@@ -37,7 +37,7 @@ import { Chargement } from '../noyau/chargement';
     @if (p.erreur()) { <app-empty-state icon="folder_off" title="Projet indisponible" [subtitle]="p.erreur()" /> }
     @else if (p.detail(); as d) {
       <div class="page-head">
-        <div class="titles"><span class="eyebrow">{{ d.client }} · {{ d.code }}</span><h1>{{ d.nom }}</h1>
+        <div class="titles"><span class="eyebrow">{{ d.client ? d.client + " · " : "" }}{{ d.code }}</span><h1>{{ d.nom }}</h1>
           <p>Chef de projet : {{ d.chef_projet ?? '—' }} · du {{ d.date_debut | dateFr }} au {{ d.date_livraison_prevue | dateFr }}
             @if (p.indicateurs(); as m) { · calculé le {{ m.date_calcul | dateFr }} }</p></div>
         <div class="actions">

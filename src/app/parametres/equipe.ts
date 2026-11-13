@@ -13,17 +13,17 @@ import { Chargement } from '../noyau/chargement';
 import { tonDeCouleur } from '../noyau/statut';
 import { DataColumn, DataTableComponent, CellEditEvent } from '../shared/components/data/data-table.component';
 import { CopyFieldComponent } from '../shared/components/fields';
+import { SearchableSelectComponent } from '../shared/components/searchable-select/searchable-select.component';
 
 interface Ligne { id: string; nom: string; email: string; role: string; role_code: string; etat: string; actif: boolean; projets: number; derniere: string; moi: boolean }
 
 /** Équipe courante : nom, membres et rôles (édition en ligne), invitations par lien. */
 @Component({
   selector: 'app-param-equipe',
-  imports: [FormsModule, MatButtonModule, MatIconModule, DataTableComponent, CopyFieldComponent, Chargement, ...PIPES],
+  imports: [FormsModule, MatButtonModule, MatIconModule, DataTableComponent, CopyFieldComponent, SearchableSelectComponent, Chargement, ...PIPES],
   styleUrl: './parametres.scss',
   host: { style: 'display: contents' },
-  styles: [`.invit { display: grid; grid-template-columns: minmax(0, 1fr) 180px auto; gap: var(--space-3); align-items: end; @media (max-width: 700px) { grid-template-columns: 1fr; } }
-    select.sel { height: 40px; border: 0; border-radius: var(--radius-sm); background: var(--mat-sys-surface-container-high, var(--hover-bg)); color: var(--text-primary); padding: 0 10px; font: inherit; width: 100%; }`],
+  styles: [`.invit { display: grid; grid-template-columns: minmax(0, 1fr) 180px auto; gap: var(--space-3); align-items: end; @media (max-width: 700px) { grid-template-columns: 1fr; } }`],
   template: `
   @if (eq.courante(); as e) {
     <section class="card pane">
@@ -39,7 +39,7 @@ interface Ligne { id: string; nom: string; email: string; role: string; role_cod
         <form class="set" (ngSubmit)="inviter()" style="display: block">
           <div class="invit">
             <div class="form-field"><label class="field-label">Adresse e-mail Google</label><div class="field-box"><mat-icon>mail</mat-icon><input name="email" type="email" [(ngModel)]="invite.email" placeholder="prenom.nom@gmail.com" required /></div></div>
-            <div class="form-field"><label class="field-label">Rôle</label><select class="sel" name="role" [(ngModel)]="invite.role">@for (r of ref.donnees()?.roles_equipe ?? []; track r.code) { <option [value]="r.code">{{ r.libelle }}</option> }</select></div>
+            <div class="form-field"><label class="field-label">Rôle</label><app-searchable-select name="role" [(ngModel)]="invite.role" [options]="optionsRoles()" icon="badge" placeholder="Rôle" /></div>
             <button mat-flat-button color="primary" type="submit" [disabled]="!invite.email.includes('@') || enCours()"><mat-icon>person_add</mat-icon>Inviter</button>
           </div>
           @if (lien(); as l) { <div style="margin-top: 16px"><p class="muted" style="font-size: 13px; margin: 0 0 8px">{{ l.message }}</p><app-copy-field [value]="l.lien" label="Lien d'invitation" /></div> }
@@ -73,6 +73,7 @@ export class ParamEquipe {
     { code: 'client_lecteur', icone: 'visibility', texte: 'Consultation uniquement.' },
     { code: 'agent', icone: 'smart_toy', texte: "Agent IA (jeton d'API) : jamais de validation, de signature ni de suppression." },
   ];
+  readonly optionsRoles = computed(() => (this.ref.donnees()?.roles_equipe ?? []).map((r) => ({ value: r.code, label: r.libelle })));
   readonly colonnes = computed<DataColumn<Ligne>[]>(() => [
     { key: 'nom', label: 'Membre', minWidth: 200, sortable: true, required: true },
     { key: 'email', label: 'E-mail', minWidth: 220, sortable: true },

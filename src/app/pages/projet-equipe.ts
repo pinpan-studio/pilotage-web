@@ -12,13 +12,14 @@ import { AuthService } from '../noyau/auth.service';
 import { Chargement } from '../noyau/chargement';
 import { Statut } from '../noyau/statut';
 import { ProjetCourant } from './projet';
+import { SearchableSelectComponent } from '../shared/components/searchable-select/searchable-select.component';
 
 /** Équipe du projet : membres et rôle de chacun sur ce projet (chef de projet, développeur, lecteur). */
 @Component({
   selector: 'app-projet-equipe',
-  imports: [FormsModule, MatButtonModule, MatIconModule, Chargement, Statut, ...PIPES],
+  imports: [FormsModule, MatButtonModule, MatIconModule, SearchableSelectComponent, Chargement, Statut, ...PIPES],
   styles: [`.ajout { display: grid; grid-template-columns: minmax(0, 1fr) 180px auto; gap: var(--space-3); align-items: end; padding: 0 var(--space-5) var(--space-5); @media (max-width: 700px) { grid-template-columns: 1fr; } }
-    select.sel { height: 40px; border: 0; border-radius: var(--radius-sm); background: var(--mat-sys-surface-container-high, var(--hover-bg)); color: var(--text-primary); padding: 0 10px; font: inherit; width: 100%; }
+    .role-sel { width: 180px; flex: 0 0 180px; } @media (max-width: 600px) { .role-sel { width: 100%; flex-basis: 100%; } }
     .ava-img { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; flex: 0 0 36px; }`],
   template: `
   <div class="grid-3">
@@ -32,8 +33,7 @@ import { ProjetCourant } from './projet';
               @if (m.photo_url) { <img class="ava-img" [src]="m.photo_url" alt="" referrerpolicy="no-referrer" /> } @else { <span class="ava">{{ initiales(m.nom) }}</span> }
               <div class="grow"><strong>{{ m.nom }}</strong><small>{{ m.email }} · équipe : {{ m.role_equipe | libelle }}</small></div>
               @if (gestion()) {
-                <select class="sel" style="width: 170px" [ngModel]="m.role" (ngModelChange)="definir(m.utilisateur_id, $event)" [attr.aria-label]="'Rôle de ' + m.nom">
-                  @for (r of ref.donnees()?.roles_projet ?? []; track r.code) { <option [value]="r.code">{{ r.libelle }}</option> }</select>
+                <app-searchable-select class="role-sel" [ngModel]="m.role" (ngModelChange)="$event && $event !== m.role && definir(m.utilisateur_id, $event)" [options]="optionsRoles()" placeholder="Rôle" />
                 <button mat-icon-button (click)="retirer(m)" [attr.aria-label]="'Retirer ' + m.nom"><mat-icon>person_remove</mat-icon></button>
               } @else { <app-statut [code]="m.role" /> }
             </div>
@@ -42,8 +42,8 @@ import { ProjetCourant } from './projet';
         @if (gestion() && candidats().length) {
           <div class="card-head"><h2>Ajouter un membre de l'équipe</h2></div>
           <form class="ajout" (ngSubmit)="ajouter()">
-            <div class="form-field"><label class="field-label">Membre</label><select class="sel" name="u" [(ngModel)]="ajout.utilisateur_id">@for (c of candidats(); track c.id) { <option [value]="c.id">{{ c.nom }} — {{ c.email }}</option> }</select></div>
-            <div class="form-field"><label class="field-label">Rôle sur le projet</label><select class="sel" name="r" [(ngModel)]="ajout.role">@for (r of ref.donnees()?.roles_projet ?? []; track r.code) { <option [value]="r.code">{{ r.libelle }}</option> }</select></div>
+            <div class="form-field"><label class="field-label">Membre</label><app-searchable-select name="u" [(ngModel)]="ajout.utilisateur_id" [options]="optionsCandidats()" icon="person" placeholder="Choisir un membre" searchPlaceholder="Nom ou e-mail…" /></div>
+            <div class="form-field"><label class="field-label">Rôle sur le projet</label><app-searchable-select name="r" [(ngModel)]="ajout.role" [options]="optionsRoles()" icon="badge" placeholder="Rôle" /></div>
             <button mat-flat-button color="primary" type="submit" [disabled]="!ajout.utilisateur_id"><mat-icon>person_add</mat-icon>Ajouter</button>
           </form>
         }
@@ -74,6 +74,8 @@ export class ProjetEquipe {
     const u = this.auth.utilisateur(); if (!u) return false;
     return u.role === 'admin' || !!this.membres()?.some((m) => m.utilisateur_id === u.id && m.role === 'chef_projet');
   });
+  readonly optionsRoles = computed(() => (this.ref.donnees()?.roles_projet ?? []).map((r) => ({ value: r.code, label: r.libelle })));
+  readonly optionsCandidats = computed(() => this.candidats().map((c) => ({ value: c.id, label: c.nom, description: c.email, icon: 'person' })));
   readonly candidats = computed(() => this.equipe().filter((e) => e.actif && !this.membres()?.some((m) => m.utilisateur_id === e.id)));
   constructor() {
     effect(() => { const c = this.p.code(); if (c) { this.charger(); this.api.invoke(equipesMembres).then((l) => this.equipe.set(l)).catch(() => undefined); } });

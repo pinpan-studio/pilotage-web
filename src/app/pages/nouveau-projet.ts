@@ -4,6 +4,8 @@ import { Router, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { versIso } from '../noyau/dates';
 import { Api } from '../../api/genere/api';
 import { projetsAdminCreer } from '../../api/genere/functions';
 import { EquipeService } from '../noyau/equipe.service';
@@ -14,7 +16,7 @@ const slug = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCa
 /** Création d'un projet (administrateur ou chef de projet) — disposition des réglages du ui-kit. */
 @Component({
   selector: 'app-nouveau-projet',
-  imports: [FormsModule, RouterLink, MatButtonModule, MatIconModule],
+  imports: [FormsModule, RouterLink, MatButtonModule, MatIconModule, MatDatepickerModule],
   styleUrl: '../parametres/parametres.scss',
   styles: [`.depot { display: grid; grid-template-columns: 180px minmax(0, 1fr) 180px auto; gap: var(--space-2); margin-bottom: var(--space-2); @media (max-width: 700px) { grid-template-columns: 1fr; } }
     .form-pane { max-width: 860px; }`],
@@ -30,8 +32,15 @@ const slug = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCa
         <div class="s-ctl"><div class="form-field"><div class="field-box"><input name="code" [(ngModel)]="f.code" (input)="codeAuto = false" required /></div></div></div></div>
       <div class="set"><div class="s-lbl"><strong>Client</strong></div><div class="s-ctl"><div class="form-field"><div class="field-box"><input name="client" [(ngModel)]="f.client" placeholder="Direction générale…" /></div></div></div></div>
       <div class="set"><div class="s-lbl"><strong>Description</strong></div><div class="s-ctl"><div class="form-field"><div class="field-box textarea-box"><textarea name="desc" rows="3" [(ngModel)]="f.description"></textarea></div></div></div></div>
-      <div class="set"><div class="s-lbl"><strong>Dates</strong><small>Début et livraison prévue</small></div>
-        <div class="s-ctl row-2"><div class="form-field"><div class="field-box"><input type="date" name="d" [(ngModel)]="f.date_debut" /></div></div><div class="form-field"><div class="field-box"><input type="date" name="l" [(ngModel)]="f.date_livraison_prevue" /></div></div></div></div>
+      <div class="set"><div class="s-lbl"><strong>Période</strong><small>Début et livraison prévue</small></div>
+        <div class="s-ctl"><div class="form-field"><div class="field-box"><mat-icon>date_range</mat-icon>
+          <mat-date-range-input [rangePicker]="periode" aria-label="Période du projet">
+            <input matStartDate name="d" [(ngModel)]="debut" placeholder="Début (jj/mm/aaaa)" />
+            <input matEndDate name="l" [(ngModel)]="fin" placeholder="Livraison" />
+          </mat-date-range-input>
+          <button mat-icon-button type="button" (click)="periode.open()" aria-label="Choisir la période"><mat-icon>calendar_month</mat-icon></button>
+          <mat-date-range-picker #periode />
+        </div></div></div></div>
       <div class="set"><div class="s-lbl"><strong>Dépôts de code</strong><small>Un par dépôt (backend, web, mobile…) ; le kit Claude Code s'installe dans chacun.</small></div>
         <div class="s-ctl">
           @for (d of f.depots; track $index; let i = $index) {
@@ -56,13 +65,14 @@ export class NouveauProjet {
   readonly enCours = signal(false); readonly erreur = signal('');
   readonly slug = slug;
   codeAuto = true;
-  f = { nom: '', code: '', client: '', description: '', date_debut: '', date_livraison_prevue: '', depots: [{ nom: 'backend', url: '', stack: '' }, { nom: 'web', url: '', stack: '' }] };
+  debut: Date | null = null; fin: Date | null = null;
+  f = { nom: '', code: '', client: '', description: '', depots: [{ nom: 'backend', url: '', stack: '' }, { nom: 'web', url: '', stack: '' }] };
   constructor() { this.eq.charger(); }
   async creer() {
     this.enCours.set(true); this.erreur.set('');
     try {
       const r = await this.api.invoke(projetsAdminCreer, { body: { code: this.f.code, nom: this.f.nom.trim(), client: this.f.client.trim() || undefined, description: this.f.description || undefined,
-        date_debut: this.f.date_debut || undefined, date_livraison_prevue: this.f.date_livraison_prevue || undefined,
+        date_debut: versIso(this.debut) ?? undefined, date_livraison_prevue: versIso(this.fin) ?? undefined,
         depots: this.f.depots.filter((d) => d.nom.trim()).map((d) => ({ nom: d.nom.trim(), url: d.url.trim() || undefined, stack: d.stack.trim() || undefined })) } });
       await this.nav.chargerProjets(true);
       this.snack.open(`Projet ${r.code} créé · ${r.nb_documents} documents à produire`, undefined, { duration: 4000 });

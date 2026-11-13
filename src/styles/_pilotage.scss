@@ -166,3 +166,37 @@
   i { width: 6px; height: 6px; border-radius: 50%; background: var(--success-color); box-shadow: 0 0 0 3px var(--success-color-light); } }
 .alert-banner { display: block; margin-bottom: var(--space-4); }
 .m3-filter-toggle { margin-bottom: var(--space-4); flex-wrap: wrap; button.active { box-shadow: none !important; } }
+
+// ─── Responsivité ──────────────────────────────────────────────
+// Segments : une seule ligne, défilement horizontal sur petit écran (au lieu d'un retour à la ligne).
+.m3-filter-toggle { flex-wrap: nowrap; max-width: 100%; overflow-x: auto !important; scrollbar-width: none; &::-webkit-scrollbar { display: none; }
+  button { flex: 0 0 auto; white-space: nowrap; }
+  @include mobile { width: auto; button, .mat-mdc-button { flex: 0 0 auto; padding: 0 var(--space-3) !important; } } }
+// En-têtes de carte : le sous-titre passe sous le titre au lieu de le chevaucher.
+.card-head { flex-wrap: wrap; row-gap: 2px; h2 { min-width: 12ch; } .sub { flex: 0 1 auto; }
+  @include mobile { .sub { flex-basis: 100%; order: 3; } } }
+// En-tête de projet compact sur mobile.
+@include mobile {
+  .pl-page > .page-head { margin-bottom: var(--space-3);
+    p { display: none; }
+    .actions { width: auto; flex-wrap: nowrap; > * { flex: 0 0 auto; } }
+    .actions .mat-mdc-outlined-button { min-width: 0; padding: 0 12px; .mdc-button__label { display: none; } mat-icon { margin: 0; } } }
+  .tabs { margin-bottom: var(--space-3); a, button { padding: 0 var(--space-3); } }
+  .kpis { gap: var(--space-2); }
+  .kpi .k-label { font-size: 12.5px; }
+}
+// Listes de la vue groupée (journal, fonctionnalités) : les longs chemins se replient, la date reste sur une ligne.
+app-grouped-board .gb-item-title { min-width: 0; overflow-wrap: anywhere; }
+app-grouped-board .gb-ref { white-space: nowrap; flex: 0 0 auto; }
+// Lecteur (docs) : le titre du document est déjà affiché par la page, pas de doublon avec le h1 du Markdown.
+app-lecteur .prose > h1:first-child { display: none; }
+// Champs de date Material dans les formulaires du kit.
+.champ-date { width: 100%; .mat-mdc-form-field-subscript-wrapper { display: none; } }
+// Sélecteur de période : couleurs de la plage alignées sur le thème M3.
+.mat-datepicker-content {
+  --mat-datepicker-calendar-date-in-range-state-background-color: color-mix(in srgb, var(--primary-color) 14%, transparent);
+  --mat-datepicker-calendar-date-in-comparison-range-state-background-color: var(--mat-sys-tertiary-container, var(--hover-bg));
+  --mat-datepicker-calendar-date-selected-state-background-color: var(--mat-sys-primary, var(--primary-color));
+  --mat-datepicker-calendar-date-selected-state-text-color: var(--mat-sys-on-primary, #fff);
+  .mat-calendar-body-in-range::before { background: color-mix(in srgb, var(--primary-color) 14%, transparent) !important; }
+}
