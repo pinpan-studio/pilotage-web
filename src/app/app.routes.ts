@@ -33,6 +33,7 @@ export const routes: Routes = [
       { path: 'compte', data: { titre: 'Mon compte', fil: 'Paramètres' }, title: 'Mon compte — Pilotage', loadComponent: () => import('./parametres/compte').then((m) => m.Compte) },
       { path: 'equipe', data: { titre: 'Équipe et rôles', fil: 'Paramètres' }, title: 'Équipe — Pilotage', loadComponent: () => import('./parametres/equipe').then((m) => m.ParamEquipe) },
       { path: 'equipes', data: { titre: 'Mes équipes', fil: 'Paramètres' }, title: 'Mes équipes — Pilotage', loadComponent: () => import('./parametres/equipes').then((m) => m.ParamEquipes) },
+      { path: 'claude-code', data: { titre: 'Claude Code (MCP)', fil: 'Paramètres' }, title: 'Claude Code — Pilotage', loadComponent: () => import('./parametres/claude-code').then((m) => m.ParamClaudeCode) },
       { path: 'securite', data: { titre: 'Sécurité', fil: 'Paramètres' }, title: 'Sécurité — Pilotage', loadComponent: () => import('./parametres/securite').then((m) => m.Securite) },
     ] },
   ] },
