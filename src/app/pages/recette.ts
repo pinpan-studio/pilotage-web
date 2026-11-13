@@ -10,7 +10,7 @@ import { versIso } from '../noyau/dates';
 import { PIPES } from '../noyau/pipes';
 import { Statut } from '../noyau/statut';
 import { Chargement } from '../noyau/chargement';
-import { Saisie, STYLES_SAISIE } from '../noyau/saisie';
+import { Saisie } from '../noyau/saisie';
 import { SearchableSelectComponent } from '../shared/components/searchable-select/searchable-select.component';
 import { EmptyStateComponent } from '../shared/components/empty-state/empty-state.component';
 import { ProjetCourant } from './projet';
@@ -21,7 +21,6 @@ type Res = 'ok' | 'ko' | 'reserve' | 'non_teste';
 @Component({
   selector: 'app-recette',
   imports: [FormsModule, MatButtonModule, MatIconModule, MatDatepickerModule, Statut, Chargement, SearchableSelectComponent, EmptyStateComponent, ...PIPES],
-  styles: [STYLES_SAISIE],
   template: `
   <div class="tete">
     <div class="m3-filter-toggle" role="tablist" aria-label="Vue">

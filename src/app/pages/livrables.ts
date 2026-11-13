@@ -5,7 +5,7 @@ import { Api } from '../../api/genere/api';
 import { fichiersStatut, gestionEcrireDocument, projetsDocument, projetsDocuments } from '../../api/genere/functions';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
-import { Saisie, STYLES_SAISIE } from '../noyau/saisie';
+import { Saisie } from '../noyau/saisie';
 import { DocumentDetailDto, DocumentDto } from '../../api/genere/models';
 import { PIPES } from '../noyau/pipes';
 import { ReferentielsService } from '../noyau/referentiels.service';
@@ -61,7 +61,7 @@ export class Livrables {
 @Component({
   selector: 'app-document',
   imports: [RouterLink, MatIconModule, Statut, Lecteur, Chargement, EmptyStateComponent, FormsModule, MatButtonModule, ...PIPES],
-  styles: [STYLES_SAISIE, `.boutons { display: flex; flex-direction: column; gap: 6px; margin: 6px 0 12px; } .boutons button { justify-content: flex-start; }
+  styles: [`.boutons { display: flex; flex-direction: column; gap: 6px; margin: 6px 0 12px; } .boutons button { justify-content: flex-start; }
     .editeur { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); } .editeur textarea { font-family: ui-monospace, monospace; font-size: 13px; min-height: 420px; }
     .apercu { border: 1px solid var(--mat-sys-outline-variant); border-radius: 12px; padding: var(--space-3); overflow: auto; max-height: 520px; }
     @media (max-width: 900px) { .editeur { grid-template-columns: 1fr; } }`],

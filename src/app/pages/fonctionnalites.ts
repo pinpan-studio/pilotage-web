@@ -2,7 +2,7 @@ import { Component, computed, effect, inject, input, signal } from '@angular/cor
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { marked } from 'marked';
-import { Saisie, STYLES_SAISIE } from '../noyau/saisie';
+import { Saisie } from '../noyau/saisie';
 import { SearchableSelectComponent } from '../shared/components/searchable-select/searchable-select.component';
 import { ecritureStatutFonctionnalite, gestionCreerFonctionnalite, gestionMajFonctionnalite } from '../../api/genere/functions';
 import { Router, RouterLink } from '@angular/router';
@@ -24,7 +24,7 @@ import { ProjetCourant } from './projet';
 @Component({
   selector: 'app-fonctionnalites',
   imports: [GroupedBoardComponent, Chargement, FormsModule, MatButtonModule, MatIconModule, SearchableSelectComponent],
-  styles: [`.card.plan { padding: var(--space-4); }`, STYLES_SAISIE],
+  styles: [`.card.plan { padding: var(--space-4); }`],
   template: `
   @if (p.peutEcrire()) { <div class="tete"><span class="esp"></span><button mat-flat-button color="primary" (click)="form.set(!form())"><mat-icon>add</mat-icon>Nouvelle fonctionnalité</button></div> }
   @if (form()) {
@@ -90,7 +90,7 @@ export class Fonctionnalites {
 @Component({
   selector: 'app-fonctionnalite',
   imports: [MatIconModule, MatProgressBarModule, Statut, Lecteur, Chargement, FormsModule, MatButtonModule, SearchableSelectComponent, ...PIPES],
-  styles: [STYLES_SAISIE, `.boutons { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; } .boutons button { justify-content: flex-start; }`],
+  styles: [`.boutons { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; } .boutons button { justify-content: flex-start; }`],
   template: `
   @if (f(); as f) {
     <app-lecteur [groupes]="arbre()" [courant]="f.ref" [titre]="f.ref + ' — ' + f.titre" [fil]="['Fonctionnalités', f.jalon || 'Sans lot', f.ref]" [sommaire]="sommaire" titreArbre="Fonctionnalités">

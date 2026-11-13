@@ -13,7 +13,7 @@ import { versIso } from '../noyau/dates';
 import { PIPES } from '../noyau/pipes';
 import { Statut } from '../noyau/statut';
 import { Chargement } from '../noyau/chargement';
-import { Saisie, STYLES_SAISIE } from '../noyau/saisie';
+import { Saisie } from '../noyau/saisie';
 import { SearchableSelectComponent } from '../shared/components/searchable-select/searchable-select.component';
 import { EmptyStateComponent } from '../shared/components/empty-state/empty-state.component';
 import { ProjetCourant } from './projet';
@@ -25,7 +25,7 @@ const opts = (l: [string, string][], icon?: string) => l.map(([value, label]) =>
 @Component({
   selector: 'app-registres',
   imports: [FormsModule, MatButtonModule, MatIconModule, MatDatepickerModule, Statut, Chargement, SearchableSelectComponent, EmptyStateComponent, ...PIPES],
-  styles: [STYLES_SAISIE, `.crit { display: inline-block; min-width: 28px; text-align: center; border-radius: 999px; padding: 1px 8px; font-weight: 600; font-size: 12px; }
+  styles: [`.crit { display: inline-block; min-width: 28px; text-align: center; border-radius: 999px; padding: 1px 8px; font-weight: 600; font-size: 12px; }
     .crit.h { background: var(--mat-sys-error-container); color: var(--mat-sys-on-error-container); } .crit.m { background: var(--mat-sys-tertiary-container); color: var(--mat-sys-on-tertiary-container); }
     .crit.b { background: var(--mat-sys-surface-container-high); } .prose-cr { white-space: pre-wrap; font-size: 13px; margin: 8px 0 0; }`],
   template: `
