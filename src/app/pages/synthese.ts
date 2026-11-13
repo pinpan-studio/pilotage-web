@@ -31,9 +31,9 @@ import { Chargement } from '../noyau/chargement';
   selector: 'app-synthese',
   imports: [Chargement, Analyses, DecimalPipe, RouterLink, MatIconModule, MatProgressBarModule, BaseChartDirective, StatCounterComponent, DataTableComponent, BannerComponent, Statut, ...PIPES],
   template: `
-  <nav class="tabs" aria-label="Sections du tableau de bord" style="margin-top: -8px">
-    @for (o of ongletsAnalyse; track o.id) { <button type="button" [class.on]="onglet() === o.id" (click)="onglet.set(o.id)"><mat-icon>{{ o.icone }}</mat-icon>{{ o.libelle }}</button> }
-  </nav>
+  <div class="m3-filter-toggle" role="tablist" aria-label="Sections du tableau de bord">
+    @for (o of ongletsAnalyse; track o.id) { <button type="button" role="tab" [class.active]="onglet() === o.id" [attr.aria-selected]="onglet() === o.id" (click)="onglet.set(o.id)"><mat-icon>{{ o.icone }}</mat-icon>{{ o.libelle }}</button> }
+  </div>
   @if (onglet() !== 'ensemble') { <app-analyses [onglet]="$any(onglet())" /> }
   @else if (p.indicateurs(); as m) {
     @if (nbHautes(); as n) {

@@ -2,7 +2,6 @@ import { Component, computed, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
-import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Api } from '../../api/genere/api';
 import { ecritureCreerTache, ecritureModifierTache, projetsActions, projetsDocuments } from '../../api/genere/functions';
@@ -21,7 +20,7 @@ type Vue = 'kanban' | 'timeline' | 'agenda';
 /** Tâches : kanban (glisser-déposer), planning en timeline (jalons, livrables, tâches par responsable) et agenda. */
 @Component({
   selector: 'app-taches',
-  imports: [FormsModule, MatIconModule, MatButtonModule, MatButtonToggleModule, KanbanBoardComponent, GanttTimelineComponent, AgendaViewComponent, Chargement, ...PIPES],
+  imports: [FormsModule, MatIconModule, MatButtonModule, KanbanBoardComponent, GanttTimelineComponent, AgendaViewComponent, Chargement, ...PIPES],
   styles: [`.barre { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4); }
     .vues { --mat-standard-button-toggle-height: 36px; --mat-standard-button-toggle-label-text-size: var(--fs-body-sm); }
     .vues mat-icon { font-size: 18px; width: 18px; height: 18px; margin-right: 6px; vertical-align: -4px; }
@@ -34,9 +33,9 @@ type Vue = 'kanban' | 'timeline' | 'agenda';
     @for (k of compteurs(); track k.code) { <div class="card kpi"><span class="k-label"><mat-icon>{{ k.icone }}</mat-icon>{{ k.libelle }}</span><span class="k-val">{{ k.nb }}</span><span class="k-foot">{{ k.detail }}</span></div> }
   </div>
   <div class="barre">
-    <mat-button-toggle-group class="vues" [value]="vue()" (change)="vue.set($event.value)" hideSingleSelectionIndicator aria-label="Vue">
-      @for (v of vues; track v.id) { <mat-button-toggle [value]="v.id"><mat-icon>{{ v.icone }}</mat-icon>{{ v.libelle }}</mat-button-toggle> }
-    </mat-button-toggle-group>
+    <div class="m3-filter-toggle" style="margin: 0" role="tablist" aria-label="Vue">
+      @for (v of vues; track v.id) { <button type="button" role="tab" [class.active]="vue() === v.id" [attr.aria-selected]="vue() === v.id" (click)="vue.set(v.id)"><mat-icon>{{ v.icone }}</mat-icon>{{ v.libelle }}</button> }
+    </div>
     <span class="spacer"></span>
     <button mat-flat-button color="primary" (click)="formulaire.set(!formulaire())"><mat-icon>{{ formulaire() ? 'close' : 'add_task' }}</mat-icon>{{ formulaire() ? 'Fermer' : 'Nouvelle tâche' }}</button>
   </div>

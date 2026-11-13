@@ -1,85 +1,65 @@
 import { Component, computed, effect, inject, signal, untracked, viewChild } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
-import { GroupedBoardComponent, PlanningGroup, PlanningItem } from '../shared/components/planning';
 import { Api } from '../../api/genere/api';
 import { projetsJournal, projetsSessions } from '../../api/genere/functions';
 import { EvenementDto, SessionDto } from '../../api/genere/models';
 import { PIPES } from '../noyau/pipes';
+import { dateHeure } from '../noyau/format';
 import { SkeletonComponent } from '../shared/components/skeleton/skeleton.component';
-import { EmptyStateComponent } from '../shared/components/empty-state/empty-state.component';
 import { DefilementInfiniDirective } from '../shared/directives/defilement-infini.directive';
+import { GroupedBoardComponent, PlanningFilter, PlanningGroup, PlanningItem, PlanningTone } from '../shared/components/planning';
 import { ProjetCourant } from './projet';
 
 const ICONES: Record<string, string> = { modification: 'edit', creation: 'note_add', commande: 'terminal', commit: 'commit', doc: 'description', agent: 'smart_toy' };
-const PAR_PAGE = 30;
+const TONS: Record<string, PlanningTone> = { modification: 'neutral', creation: 'primary', commande: 'info', commit: 'success', doc: 'purple', agent: 'purple' };
+const PAR_PAGE = 50;
+type Vue = 'evenements' | 'sessions';
 
-/** Journal : sessions de développement et flux d'événements en défilement infini (pages de 30, filtres côté API). */
+/**
+ * Journal : vue groupée du ui-kit en liste (démo « Par véhicule (liste) », layout="list"), un groupe par dépôt.
+ * Événements chargés au fil du défilement (pages de 50) ; sessions de développement.
+ */
 @Component({
   selector: 'app-journal',
-  imports: [FormsModule, MatIconModule, GroupedBoardComponent, SkeletonComponent, EmptyStateComponent, DefilementInfiniDirective, ...PIPES],
-  styles: [`.jour { position: sticky; top: 0; z-index: 1; padding: var(--space-3) 0 var(--space-2); background: var(--card-bg); font: 600 var(--fs-overline) / 1.4 var(--font-body); letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); }
-    .fin { padding: var(--space-4) 0 var(--space-2); text-align: center; font-size: var(--fs-caption); color: var(--text-muted); }`],
+  imports: [MatIconModule, GroupedBoardComponent, SkeletonComponent, DefilementInfiniDirective, ...PIPES],
+  styles: [`.card.plan { padding: var(--space-4); } .fin { padding: var(--space-4) 0 var(--space-2); text-align: center; font-size: var(--fs-caption); color: var(--text-muted); }`],
   template: `
-  <div class="grid-3">
-    <section class="card span-2">
-      <div class="card-head"><h2>Journal</h2><span class="sub">{{ total() ?? '…' }} au total</span></div>
-      <div class="card-body">
-        <div class="toolbar-row">
-          <button type="button" class="chip-filter" [class.on]="!evt()" (click)="filtrer('', depot())">Tous</button>
-          @for (t of types; track t) { <button type="button" class="chip-filter" [class.on]="evt() === t" (click)="filtrer(t, depot())"><mat-icon>{{ icone(t) }}</mat-icon>{{ t }}</button> }
-          <span class="spacer"></span>
-          <select class="select-chip" [ngModel]="depot()" (ngModelChange)="filtrer(evt(), $event)" aria-label="Dépôt"><option value="">Tous les dépôts</option>@for (d of p.detail()?.depots ?? []; track d.id) { <option [value]="d.nom">{{ d.nom }}</option> }</select>
-        </div>
-        <div class="rows">
-          @for (g of parJour(); track g.jour) {
-            <div class="jour">{{ g.jour | dateFr }}</div>
-            @for (e of g.elements; track e.id) {
-              <div class="row" style="padding-left: 0; padding-right: 0">
-                <span class="ic-tile" [class]="'ic-tile ' + (e.evt === 'commit' ? 'tone-success' : e.evt === 'doc' || e.evt === 'agent' ? 'tone-purple' : 'tone-neutral')"><mat-icon>{{ icone(e.evt) }}</mat-icon></span>
-                <div class="grow"><strong class="mono">{{ e.hash ? e.hash + ' — ' : '' }}{{ e.fichier || e.commande || e.message }}</strong>
-                  <small>{{ e.auteur }} · {{ e.depot ?? '—' }}@for (f of e.fonctionnalites; track f) { · {{ f }} }</small></div>
-                <span class="num" style="font-size: 12px; font-weight: 500">{{ e.ts | dateFr: true }}</span></div>
-            }
-          }
-          @if (chargement()) { <app-skeleton variant="avatar" [count]="elements().length ? 3 : 8" /> }
-          @else if (!elements().length) { <app-empty-state icon="history" title="Aucun événement" subtitle="Rien ne correspond à ces filtres." /> }
-          @else if (fin()) { <div class="fin">Début du journal atteint · {{ elements().length }} événement(s)</div> }
-          <div appDefilementInfini [actif]="!fin() && !chargement()" (atteint)="suivante()"></div>
-        </div>
-      </div>
-    </section>
-
-    <section class="card">
-      <div class="card-head"><h2>Sessions par dépôt</h2><span class="sub">{{ sessions()?.length ?? '…' }}</span></div>
-      <div class="card-body">
-        @if (!sessions()) { <app-skeleton variant="avatar" [count]="4" /> }
-        @else { <app-grouped-board [items]="itemsSessions()" [groups]="groupesDepots()" layout="list" [showProgress]="false" ungroupedLabel="Sans dépôt" /> }
-      </div>
-    </section>
-  </div>`,
+  <div class="m3-filter-toggle" role="tablist" aria-label="Journal">
+    <button type="button" role="tab" [class.active]="vue() === 'evenements'" (click)="vue.set('evenements')"><mat-icon>history</mat-icon>Événements</button>
+    <button type="button" role="tab" [class.active]="vue() === 'sessions'" (click)="vue.set('sessions')"><mat-icon>code</mat-icon>Sessions</button>
+  </div>
+  <section class="card plan">
+    @if (vue() === 'evenements') {
+      @if (elements().length) {
+        <app-grouped-board [items]="itemsEvenements()" [groups]="depots()" layout="list" [showProgress]="false" [searchable]="true" [filters]="filtres" ungroupedLabel="Sans dépôt" />
+      }
+      @if (chargement()) { <app-skeleton variant="avatar" [count]="elements().length ? 3 : 8" /> }
+      @else if (fin() && elements().length) { <div class="fin">Début du journal atteint · {{ elements().length }} événement(s) sur {{ total() }}</div> }
+      <div appDefilementInfini [actif]="!fin() && !chargement()" (atteint)="suivante()"></div>
+    } @else {
+      @if (!sessions()) { <app-skeleton variant="avatar" [count]="5" /> }
+      @else { <app-grouped-board [items]="itemsSessions()" [groups]="depots()" layout="list" [showProgress]="false" [searchable]="true" ungroupedLabel="Sans dépôt" /> }
+    }
+  </section>`,
 })
 export class Journal {
   readonly p = inject(ProjetCourant);
   private readonly api = inject(Api);
   private readonly sentinelle = viewChild(DefilementInfiniDirective);
-  readonly types = Object.keys(ICONES);
+  readonly vue = signal<Vue>('evenements');
   readonly sessions = signal<SessionDto[] | null>(null);
   readonly elements = signal<EvenementDto[]>([]);
   readonly total = signal<number | null>(null);
   readonly chargement = signal(false);
-  readonly evt = signal(''); readonly depot = signal('');
   private page = 0;
-  private generation = 0;
   readonly fin = computed(() => this.total() !== null && this.elements().length >= this.total()!);
-  readonly parJour = computed(() => {
-    const g: { jour: string; elements: EvenementDto[] }[] = [];
-    for (const e of this.elements()) { const j = e.ts.slice(0, 10); if (g.at(-1)?.jour !== j) g.push({ jour: j, elements: [] }); g.at(-1)!.elements.push(e); }
-    return g;
-  });
-  icone = (t: string) => ICONES[t] ?? 'circle';
-  /** Sessions regroupées par dépôt (vue groupée du ui-kit, layout="list"). */
-  readonly groupesDepots = computed<PlanningGroup[]>(() => (this.p.detail()?.depots ?? []).map((d) => ({ key: d.nom, label: d.nom, subtitle: d.stack, icon: 'source' })));
+  readonly filtres: PlanningFilter[] = [{ key: 'evt', label: 'Type', allLabel: 'Tous', options: Object.keys(ICONES).map((k) => ({ value: k, label: k })) }];
+
+  readonly depots = computed<PlanningGroup[]>(() => (this.p.detail()?.depots ?? []).map((d) => ({ key: d.nom, label: d.nom, subtitle: d.stack, icon: 'source' })));
+  readonly itemsEvenements = computed<PlanningItem[]>(() => this.elements().map((e) => ({
+    id: e.id, ref: e.hash || undefined, title: e.evt === 'commit' ? e.message : (e.fichier || e.commande || e.message), group: e.depot ?? undefined,
+    start: e.ts, assignee: e.auteur, tone: TONS[e.evt] ?? 'neutral', badge: { label: e.evt, tone: TONS[e.evt] ?? 'neutral' },
+    description: dateHeure(e.ts), tags: e.fonctionnalites, fields: { evt: e.evt } })));
   readonly itemsSessions = computed<PlanningItem[]>(() => (this.sessions() ?? []).map((s) => {
     const resume = s.resume.replace(/^---[\s\S]*?---/, '').split('\n').map((l) => l.replace(/^[#>*\-\s]+/, '').trim()).filter((l) => l && !/^Session du/.test(l));
     return { id: s.id, title: resume[0] || (s.notes[0]?.texte ?? 'Session'), description: resume.slice(1, 3).join(' · '), group: s.depot ?? undefined,
@@ -93,25 +73,17 @@ export class Journal {
       const c = this.p.code(); if (!c) return;
       untracked(() => {
         this.api.invoke(projetsSessions, { code: c }).then((s) => this.sessions.set(s)).catch(() => this.sessions.set([]));
-        this.filtrer('', '');
+        this.page = 0; this.elements.set([]); this.total.set(null); this.chargement.set(false);
+        this.suivante();
       });
     });
   }
-  filtrer(evt: string, depot: string) {
-    this.evt.set(evt); this.depot.set(depot);
-    this.generation++; this.page = 0; this.elements.set([]); this.total.set(null); this.chargement.set(false);
-    this.suivante();
-  }
   async suivante() {
     if (this.chargement() || this.fin()) return;
-    const gen = this.generation;
     this.chargement.set(true);
     try {
-      const r = await this.api.invoke(projetsJournal, { code: this.p.code(), page: this.page + 1, par_page: PAR_PAGE, evt: this.evt() || undefined, depot: this.depot() || undefined });
-      if (gen !== this.generation) return; // filtre changé entre-temps
+      const r = await this.api.invoke(projetsJournal, { code: this.p.code(), page: this.page + 1, par_page: PAR_PAGE });
       this.page = r.page; this.total.set(r.total); this.elements.update((l) => [...l, ...r.elements]);
-    } finally {
-      if (gen === this.generation) { this.chargement.set(false); setTimeout(() => this.sentinelle()?.verifier(), 50); }
-    }
+    } finally { this.chargement.set(false); setTimeout(() => this.sentinelle()?.verifier(), 50); }
   }
 }
