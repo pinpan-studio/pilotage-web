@@ -10,6 +10,11 @@ export interface FonctionnaliteDetailDto {
   commits: Array<EvenementDto>;
   depots: Array<StatutDepotDto>;
   derniere_activite: string | null;
+
+  /**
+   * Description et critères d'acceptation (Markdown).
+   */
+  description: string;
   exigences: Array<string>;
   id: string;
   jalon: string;

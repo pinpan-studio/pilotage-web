@@ -2,7 +2,10 @@ import { Component, computed, effect, inject, input, signal } from '@angular/cor
 import { Router, RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { Api } from '../../api/genere/api';
-import { projetsDocument, projetsDocuments } from '../../api/genere/functions';
+import { fichiersStatut, gestionEcrireDocument, projetsDocument, projetsDocuments } from '../../api/genere/functions';
+import { FormsModule } from '@angular/forms';
+import { MatButtonModule } from '@angular/material/button';
+import { Saisie, STYLES_SAISIE } from '../noyau/saisie';
 import { DocumentDetailDto, DocumentDto } from '../../api/genere/models';
 import { PIPES } from '../noyau/pipes';
 import { ReferentielsService } from '../noyau/referentiels.service';
@@ -57,7 +60,11 @@ export class Livrables {
 /** Contenu d'un livrable — gabarit de documentation du ui-kit (examples/app/docs). */
 @Component({
   selector: 'app-document',
-  imports: [RouterLink, MatIconModule, Statut, Lecteur, Chargement, EmptyStateComponent, ...PIPES],
+  imports: [RouterLink, MatIconModule, Statut, Lecteur, Chargement, EmptyStateComponent, FormsModule, MatButtonModule, ...PIPES],
+  styles: [STYLES_SAISIE, `.boutons { display: flex; flex-direction: column; gap: 6px; margin: 6px 0 12px; } .boutons button { justify-content: flex-start; }
+    .editeur { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); } .editeur textarea { font-family: ui-monospace, monospace; font-size: 13px; min-height: 420px; }
+    .apercu { border: 1px solid var(--mat-sys-outline-variant); border-radius: 12px; padding: var(--space-3); overflow: auto; max-height: 520px; }
+    @media (max-width: 900px) { .editeur { grid-template-columns: 1fr; } }`],
   template: `
   @if (d(); as d) {
     <app-lecteur [groupes]="arbre()" [courant]="d.code" [titre]="d.titre" [fil]="['Livrables', phase(d.phase), d.code]" [sommaire]="rendu().sommaire" titreArbre="Livrables">
@@ -67,12 +74,37 @@ export class Livrables {
         @if (d.date_validation) { <span>Validé le {{ d.date_validation | dateFr }}</span> }
         @if (d.signature) { <span>{{ d.nb_scans ? 'Scan signé ✓' : 'Signature attendue' }}</span> }
       </ng-container>
-      @if (d.version_courante) { <div class="prose" [innerHTML]="rendu().html"></div> }
+      @if (edition() !== null) {
+        <form class="card pane" (ngSubmit)="enregistrer()">
+          <div class="editeur">
+            <div class="form-field"><div class="field-box textarea-box"><textarea name="c" [(ngModel)]="contenu" (ngModelChange)="edition.set($event)"></textarea></div></div>
+            <div class="apercu prose" [innerHTML]="apercu()"></div>
+          </div>
+          <div class="grille-form" style="margin-top: 12px">
+            <div class="large"><label>Résumé de la modification</label><div class="form-field"><div class="field-box"><input name="r" [(ngModel)]="resume" placeholder="Mise à jour du chapitre 3" /></div></div></div>
+          </div>
+          <div class="actions-form"><button mat-button type="button" (click)="edition.set(null)">Annuler</button>
+            <button mat-stroked-button type="button" (click)="enregistrer('en_cours')" [disabled]="resume.trim().length < 2">Enregistrer (en cours)</button>
+            <button mat-flat-button color="primary" type="submit" [disabled]="resume.trim().length < 2"><mat-icon>rate_review</mat-icon>Enregistrer et soumettre en revue</button></div>
+          <p class="mini">Chaque enregistrement crée une nouvelle version ; un document validé ou signé repasse en revue.</p>
+        </form>
+      }
+      @else if (d.version_courante) { <div class="prose" [innerHTML]="rendu().html"></div> }
       @else {
         <app-empty-state icon="draft" title="Aucun contenu" [subtitle]="d.lien_externe ? 'Ce document est conservé hors de Pilotage.' : 'Ce document n’a pas encore été rédigé (l’agent peut le produire avec /document ' + d.code + ').'" />
         @if (d.lien_externe) { <p style="text-align:center"><a [href]="d.lien_externe" target="_blank" rel="noopener">Ouvrir le document externe</a></p> }
       }
       <div droite>
+        @if (p.peutEcrire()) {
+          <span class="text-overline">Actions</span>
+          <div class="boutons">
+            @if (d.producteur !== 'humain') { <button mat-stroked-button (click)="editer()"><mat-icon>edit_note</mat-icon>{{ d.version_courante ? 'Modifier' : 'Rédiger' }}</button> }
+            @if (d.statut === 'en_cours') { <button mat-button (click)="statut('en_revue')"><mat-icon>rate_review</mat-icon>Soumettre en revue</button> }
+            @if (p.estChef() && ['en_revue', 'en_cours'].includes(d.statut)) { <button mat-button (click)="statut('valide')"><mat-icon>verified</mat-icon>Valider</button> }
+            @if (p.estChef() && d.statut === 'valide') { <button mat-button (click)="statut('signe')"><mat-icon>draw</mat-icon>Marquer signé</button> }
+            @if (p.estChef() && d.statut === 'a_produire') { <button mat-button (click)="statut('sans_objet')"><mat-icon>do_not_disturb_on</mat-icon>Sans objet</button> }
+          </div>
+        }
         <span class="text-overline">Versions</span>
         <div class="bloc-droit">
           @for (v of d.versions; track v.id) {
@@ -86,7 +118,19 @@ export class Livrables {
   } @else { <app-chargement forme="document" /> }`,
 })
 export class Document {
-  private readonly p = inject(ProjetCourant);
+  readonly p = inject(ProjetCourant);
+  private readonly s = inject(Saisie);
+  readonly edition = signal<string | null>(null);
+  contenu = ''; resume = '';
+  readonly apercu = computed(() => marked.parse(this.edition() ?? '', { async: false }) as string);
+  editer() { this.contenu = this.d()?.version_courante?.contenu ?? ''; this.resume = ''; this.edition.set(this.contenu); }
+  private recharger() { const c = this.p.code(); this.api.invoke(projetsDocument, { code: c, doc: this.doc() }).then((x) => this.d.set(x)); this.api.invoke(projetsDocuments, { code: c }).then((l) => this.docs.set(l)); this.p.rafraichir(); }
+  async enregistrer(statut: 'en_cours' | 'en_revue' = 'en_revue') {
+    if (await this.s.faire(() => this.api.invoke(gestionEcrireDocument, { code: this.p.code(), doc: this.doc(), body: { contenu_md: this.contenu, resume_modif: this.resume.trim(), statut } }), 'Nouvelle version enregistrée')) { this.edition.set(null); this.recharger(); }
+  }
+  async statut(statut: 'en_revue' | 'valide' | 'signe' | 'sans_objet') {
+    if (await this.s.faire(() => this.api.invoke(fichiersStatut, { code: this.p.code(), doc: this.doc(), body: { statut } }), 'Statut du document mis à jour')) this.recharger();
+  }
   private readonly api = inject(Api);
   private readonly ref = inject(ReferentielsService);
   private readonly g = inject(GraphiquesService);

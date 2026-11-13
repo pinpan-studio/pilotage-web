@@ -25,6 +25,8 @@ export const routes: Routes = [
       { path: 'taches', data: { titre: 'Tâches' }, title: 'Tâches — Pilotage', loadComponent: () => import('./pages/taches').then((m) => m.Taches) },
       { path: 'livrables', data: { titre: "Livrables" }, title: 'Livrables — Pilotage', loadComponent: () => import('./pages/livrables').then((m) => m.Livrables) },
       { path: 'livrables/:doc', data: { titre: 'Document' }, title: 'Document — Pilotage', loadComponent: () => import('./pages/livrables').then((m) => m.Document) },
+      { path: 'recette', data: { titre: 'Recette' }, title: 'Recette — Pilotage', loadComponent: () => import('./pages/recette').then((m) => m.Recette) },
+      { path: 'registres', data: { titre: 'Registres' }, title: 'Registres — Pilotage', loadComponent: () => import('./pages/registres').then((m) => m.Registres) },
       { path: 'equipe', data: { titre: 'Équipe du projet' }, title: 'Équipe du projet — Pilotage', loadComponent: () => import('./pages/projet-equipe').then((m) => m.ProjetEquipe) },
       { path: 'journal', data: { titre: "Journal" }, title: 'Journal — Pilotage', loadComponent: () => import('./pages/journal').then((m) => m.Journal) },
     ] },

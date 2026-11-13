@@ -1,4 +1,4 @@
-import { Component, Injectable, effect, inject, input, signal } from '@angular/core';
+import { Component, Injectable, computed, effect, inject, input, signal } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
@@ -18,6 +18,11 @@ export class ProjetCourant {
   readonly detail = signal<ProjetDetailDto | null>(null);
   readonly indicateurs = signal<IndicateursDto | null>(null);
   readonly erreur = signal('');
+  /** Droits d'après le rôle sur le projet (l'API reste seule juge). */
+  readonly peutEcrire = computed(() => !!this.detail() && this.detail()!.mon_role !== 'client_lecteur');
+  readonly estChef = computed(() => this.detail()?.mon_role === 'chef_projet');
+  /** Recharge les indicateurs après une saisie. */
+  async rafraichir() { const c = this.code(); if (c) this.indicateurs.set(await this.api.invoke(projetsIndicateurs, { code: c })); }
   async charger(code: string) {
     this.code.set(code); this.detail.set(null); this.indicateurs.set(null); this.erreur.set('');
     try {

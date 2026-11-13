@@ -12,6 +12,11 @@ export interface ProjetDetailDto {
   description: string;
   equipe: Array<string>;
   id: string;
+
+  /**
+   * Rôle de l'utilisateur courant sur ce projet (l'administrateur vaut chef de projet).
+   */
+  mon_role: 'chef_projet' | 'developpeur' | 'client_lecteur' | 'agent';
   nom: string;
   revision_perimetre: boolean;
   seuil_rappel_doc: number;

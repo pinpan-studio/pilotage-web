@@ -11,6 +11,8 @@ export const ONGLETS_PROJET = [
   { seg: 'fonctionnalites', label: 'Fonctionnalités', icon: 'checklist' },
   { seg: 'taches', label: 'Tâches', icon: 'task_alt' },
   { seg: 'livrables', label: 'Livrables', icon: 'description' },
+  { seg: 'recette', label: 'Recette', icon: 'fact_check' },
+  { seg: 'registres', label: 'Registres', icon: 'inventory' },
   { seg: 'journal', label: 'Journal', icon: 'history' },
   { seg: 'equipe', label: 'Équipe', icon: 'group' },
 ];
