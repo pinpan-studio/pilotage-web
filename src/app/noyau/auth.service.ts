@@ -1,9 +1,10 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { Api } from '../../api/genere/api';
-import { authConnexion, authDeconnexion, authRafraichir } from '../../api/genere/functions';
+import { authConnexion, authDeconnexion, authGoogle, authRafraichir } from '../../api/genere/functions';
+import { GoogleService } from './google.service';
 
-interface Utilisateur { id: string; email: string; nom: string; role: string }
+interface Utilisateur { id: string; email: string; nom: string; role: string; photo_url?: string | null }
 const CLE = 'pilotage.session';
 
 /**
@@ -14,6 +15,7 @@ const CLE = 'pilotage.session';
 export class AuthService {
   private readonly api = inject(Api);
   private readonly router = inject(Router);
+  private readonly google = inject(GoogleService);
   private jetonAcces: string | null = null;
   private enCours: Promise<boolean> | null = null;
   readonly utilisateur = signal<Utilisateur | null>(null);
@@ -30,6 +32,17 @@ export class AuthService {
     this.jetonAcces = r.jeton_acces;
     this.utilisateur.set(r.utilisateur);
     localStorage.setItem(CLE, JSON.stringify({ refresh: r.jeton_rafraichissement, utilisateur: r.utilisateur }));
+  }
+
+  async connexionGoogle(credential: string) {
+    this.memoriser(await this.api.invoke(authGoogle, { body: { credential } }));
+  }
+
+  /** Met à jour le nom affiché après une modification du profil. */
+  majUtilisateur(u: Partial<Utilisateur>) {
+    const x = this.utilisateur(); if (!x) return;
+    const n = { ...x, ...u }; this.utilisateur.set(n);
+    try { const s = JSON.parse(localStorage.getItem(CLE) ?? 'null'); if (s) localStorage.setItem(CLE, JSON.stringify({ ...s, utilisateur: n })); } catch { /* ignore */ }
   }
 
   async connexion(email: string, mot_de_passe: string) {
@@ -50,6 +63,7 @@ export class AuthService {
   async deconnexion() {
     const r = this.refresh;
     this.oublier();
+    this.google.oublier();
     if (r) await this.api.invoke(authDeconnexion, { body: { jeton_rafraichissement: r } }).catch(() => undefined);
     this.router.navigateByUrl('/connexion');
   }

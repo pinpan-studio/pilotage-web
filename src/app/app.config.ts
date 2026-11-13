@@ -10,6 +10,7 @@ import { routes } from './app.routes';
 import { chargerConfig } from './noyau/config';
 import { intercepteurAuth } from './noyau/intercepteur';
 import { ThemeService } from './core/services/theme.service';
+import { GoogleService } from './noyau/google.service';
 
 registerLocaleData(localeFr);
 
@@ -26,7 +27,10 @@ export const appConfig: ApplicationConfig = {
     provideAppInitializer(async () => {
       inject(ThemeService); // applique le thème mémorisé (clair / sombre / couleur) dès le démarrage
       const api = inject(ApiConfiguration);
+      const google = inject(GoogleService); // inject() avant tout await
       api.rootUrl = (await chargerConfig()).apiUrl;
+      // Configuration publique de l'API (ID client Google) ; hors ligne, l'interface démarre quand même.
+      await fetch(`${api.rootUrl}/api/v1/config`).then((r) => r.json()).then((c) => google.clientId.set(c.google_client_id ?? null)).catch(() => undefined);
     }),
   ],
 };

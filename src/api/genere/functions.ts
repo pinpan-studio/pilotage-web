@@ -3,8 +3,12 @@
 
 export type { SanteSante$Params as SanteSante$Params } from './fn/sante/sante-sante';
 export { santeSante as santeSante } from './fn/sante/sante-sante';
+export type { ConfigConfig$Params as ConfigConfig$Params } from './fn/sante/config-config';
+export { configConfig as configConfig } from './fn/sante/config-config';
 export type { AuthConnexion$Params as AuthConnexion$Params } from './fn/auth/auth-connexion';
 export { authConnexion as authConnexion } from './fn/auth/auth-connexion';
+export type { AuthGoogle$Params as AuthGoogle$Params } from './fn/auth/auth-google';
+export { authGoogle as authGoogle } from './fn/auth/auth-google';
 export type { AuthRafraichir$Params as AuthRafraichir$Params } from './fn/auth/auth-rafraichir';
 export { authRafraichir as authRafraichir } from './fn/auth/auth-rafraichir';
 export type { AuthDeconnexion$Params as AuthDeconnexion$Params } from './fn/auth/auth-deconnexion';
@@ -19,6 +23,16 @@ export type { JetonsRevoquer$Params as JetonsRevoquer$Params } from './fn/admini
 export { jetonsRevoquer as jetonsRevoquer } from './fn/administration/jetons-revoquer';
 export type { ImportImporter$Params as ImportImporter$Params } from './fn/administration/import-importer';
 export { importImporter as importImporter } from './fn/administration/import-importer';
+export type { CompteProfil$Params as CompteProfil$Params } from './fn/compte/compte-profil';
+export { compteProfil as compteProfil } from './fn/compte/compte-profil';
+export type { CompteMajProfil$Params as CompteMajProfil$Params } from './fn/compte/compte-maj-profil';
+export { compteMajProfil as compteMajProfil } from './fn/compte/compte-maj-profil';
+export type { CompteSessions$Params as CompteSessions$Params } from './fn/compte/compte-sessions';
+export { compteSessions as compteSessions } from './fn/compte/compte-sessions';
+export type { CompteRevoquer$Params as CompteRevoquer$Params } from './fn/compte/compte-revoquer';
+export { compteRevoquer as compteRevoquer } from './fn/compte/compte-revoquer';
+export type { CompteRevoquerAutres$Params as CompteRevoquerAutres$Params } from './fn/compte/compte-revoquer-autres';
+export { compteRevoquerAutres as compteRevoquerAutres } from './fn/compte/compte-revoquer-autres';
 export type { ReferentielsReferentiels$Params as ReferentielsReferentiels$Params } from './fn/referentiels/referentiels-referentiels';
 export { referentielsReferentiels as referentielsReferentiels } from './fn/referentiels/referentiels-referentiels';
 export type { ReferentielsCatalogue$Params as ReferentielsCatalogue$Params } from './fn/referentiels/referentiels-catalogue';

@@ -1,16 +1,21 @@
-import { Component, inject, signal } from '@angular/core';
+import { AfterViewInit, Component, ElementRef, inject, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { AuthService } from '../../noyau/auth.service';
+import { GoogleService } from '../../noyau/google.service';
+import { ThemeService } from '../../core/services/theme.service';
 
 /** Connexion — disposition « split-right » de la page d'authentification du UI-Kit. */
 @Component({
   selector: 'app-connexion',
   imports: [FormsModule, MatButtonModule, MatIconModule, MatProgressSpinnerModule],
   styleUrl: './connexion.scss',
+  styles: [`.google-zone { display: flex; align-items: center; justify-content: center; gap: 12px; min-height: 44px; margin: 8px 0; }
+    .google-btn { width: 100%; max-width: 400px; display: flex; justify-content: center; }
+    .lien-btn { background: none; border: 0; cursor: pointer; font: inherit; padding: 0; }`],
   template: `
   <div class="auth layout-split-right screen-login">
     <aside class="visual">
@@ -29,6 +34,13 @@ import { AuthService } from '../../noyau/auth.service';
       <div class="brand compact"><mat-icon>insights</mat-icon><span>Pilotage</span></div>
       <div class="form">
         <div class="head"><h1>Bon retour !</h1><p>Connectez-vous pour accéder à votre espace.</p></div>
+        @if (google.clientId()) {
+          <div class="google-zone"><div #boutonGoogle class="google-btn"></div>@if (enCours()) { <mat-spinner diameter="22" /> }</div>
+          @if (!emailVisible()) { <p class="alt"><button type="button" class="link lien-btn" (click)="emailVisible.set(true)">Connexion par e-mail et mot de passe</button></p> }
+          @else { <div class="divider"><span>ou avec votre e-mail</span></div> }
+        }
+        @if (erreur() && !emailVisible()) { <p class="error"><mat-icon>error</mat-icon>{{ erreur() }}</p> }
+        @if (emailVisible() || !google.clientId()) {
         <form (ngSubmit)="valider()" class="fields">
           <div class="form-field">
             <label class="field-label" for="email">Adresse e-mail</label>
@@ -46,14 +58,32 @@ import { AuthService } from '../../noyau/auth.service';
             @if (enCours()) { <mat-spinner diameter="18" /> } @else { Se connecter }
           </button>
         </form>
+        }
       </div>
       <footer class="legal">© {{ annee }} Pilotage · données hébergées de façon sécurisée</footer>
     </main>
   </div>`,
 })
-export class Connexion {
+export class Connexion implements AfterViewInit {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  readonly google = inject(GoogleService);
+  private readonly theme = inject(ThemeService);
+  private readonly boutonGoogle = viewChild<ElementRef<HTMLElement>>('boutonGoogle');
+  readonly emailVisible = signal(false);
+
+  ngAfterViewInit() {
+    const hote = this.boutonGoogle()?.nativeElement;
+    if (hote) this.google.afficherBouton(hote, (c) => this.validerGoogle(c), this.theme.mode() === 'dark')
+      .catch(() => { this.erreur.set('Google est injoignable : vérifiez la connexion, ou utilisez la connexion par e-mail.'); this.emailVisible.set(true); });
+  }
+
+  async validerGoogle(credential: string) {
+    this.erreur.set(''); this.enCours.set(true);
+    try { await this.auth.connexionGoogle(credential); this.router.navigateByUrl('/'); }
+    catch (e: any) { this.erreur.set(e?.error?.message ?? (e?.status === 0 ? 'API injoignable : vérifiez la connexion internet.' : 'Connexion Google refusée.')); }
+    finally { this.enCours.set(false); }
+  }
   readonly annee = new Date().getFullYear();
   email = ''; mdp = '';
   readonly erreur = signal(''); readonly enCours = signal(false); readonly voir = signal(false);

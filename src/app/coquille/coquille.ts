@@ -38,7 +38,7 @@ interface EntreeMenu { libelle: string; icone: string; lien: string; exact?: boo
           </nav>
         </ng-scrollbar>
         <button type="button" class="user-avatar-btn" [matTooltip]="auth.utilisateur()?.nom" matTooltipPosition="right" (click)="compte.open()">
-          <div class="avatar">{{ initiales() }}</div>
+          @if (auth.utilisateur()?.photo_url) { <img class="avatar" [src]="auth.utilisateur()!.photo_url" alt="" referrerpolicy="no-referrer" style="object-fit: cover" /> } @else { <div class="avatar">{{ initiales() }}</div> }
         </button>
       </div>
     </mat-sidenav>
@@ -52,7 +52,7 @@ interface EntreeMenu { libelle: string; icone: string; lien: string; exact?: boo
           <mat-icon>{{ theme.mode() === 'light' ? 'dark_mode' : 'light_mode' }}</mat-icon>
         </button>
         <app-theme-picker />
-        <button mat-icon-button class="avatar-btn" (click)="compte.open()" matTooltip="Mon compte"><div class="avatar">{{ initiales() }}</div></button>
+        <button mat-icon-button class="avatar-btn" (click)="compte.open()" matTooltip="Mon compte">@if (auth.utilisateur()?.photo_url) { <img class="avatar" [src]="auth.utilisateur()!.photo_url" alt="" referrerpolicy="no-referrer" style="object-fit: cover" /> } @else { <div class="avatar">{{ initiales() }}</div> }</button>
       </mat-toolbar>
       <ng-scrollbar class="content-area" visibility="hover">
         <router-outlet />
@@ -63,12 +63,14 @@ interface EntreeMenu { libelle: string; icone: string; lien: string; exact?: boo
       <div class="sidenav-inner">
         <div class="compte">
           <div class="tete">
-            <div class="avatar lg">{{ initiales() }}</div>
+            @if (auth.utilisateur()?.photo_url) { <img class="avatar lg" [src]="auth.utilisateur()!.photo_url" alt="" referrerpolicy="no-referrer" style="object-fit: cover" /> } @else { <div class="avatar lg">{{ initiales() }}</div> }
             <div class="id"><strong>{{ auth.utilisateur()?.nom }}</strong><small>{{ auth.utilisateur()?.email }}</small></div>
             <span class="spacer"></span>
             <button mat-icon-button (click)="compte.close()" aria-label="Fermer"><mat-icon>close</mat-icon></button>
           </div>
           <div class="lignes">
+            <a routerLink="/parametres/compte" (click)="compte.close()"><mat-icon>person</mat-icon>Mon compte</a>
+            <a routerLink="/parametres/securite" (click)="compte.close()"><mat-icon>shield</mat-icon>Sécurité et sessions</a>
             <button (click)="theme.toggle()"><mat-icon>contrast</mat-icon>{{ theme.mode() === 'light' ? 'Passer en mode sombre' : 'Passer en mode clair' }}</button>
             <button (click)="compte.close(); auth.deconnexion()"><mat-icon>logout</mat-icon>Se déconnecter</button>
           </div>
@@ -86,6 +88,7 @@ export class Coquille {
   readonly titre = signal('Pilotage');
   readonly menu: EntreeMenu[] = [
     { libelle: 'Portefeuille', icone: 'dashboard', lien: '/', exact: true },
+    { libelle: 'Paramètres', icone: 'settings', lien: '/parametres' },
   ];
   readonly initiales = computed(() => (this.auth.utilisateur()?.nom ?? '?').split(/\s+/).filter(Boolean).map((n) => n[0]).join('').slice(0, 2).toUpperCase());
 

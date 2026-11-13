@@ -5,5 +5,6 @@ export interface UtilisateurSessionDto {
   email: string;
   id: string;
   nom: string;
+  photo_url?: string | null;
   role: string;
 }

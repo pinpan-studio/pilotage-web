@@ -23,6 +23,11 @@ export const routes: Routes = [
       { path: 'livrables/:doc', title: 'Document — Pilotage', loadComponent: () => import('./pages/livrables').then((m) => m.Document) },
       { path: 'journal', title: 'Journal — Pilotage', loadComponent: () => import('./pages/journal').then((m) => m.Journal) },
     ] },
+    { path: 'parametres', data: { titre: 'Paramètres' }, loadComponent: () => import('./parametres/parametres').then((m) => m.Parametres), children: [
+      { path: '', pathMatch: 'full', redirectTo: 'compte' },
+      { path: 'compte', title: 'Mon compte — Pilotage', loadComponent: () => import('./parametres/compte').then((m) => m.Compte) },
+      { path: 'securite', title: 'Sécurité — Pilotage', loadComponent: () => import('./parametres/securite').then((m) => m.Securite) },
+    ] },
   ] },
   { path: '**', redirectTo: '' },
 ];
