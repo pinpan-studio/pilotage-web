@@ -6,8 +6,9 @@ export interface CreerJetonDto {
   nom: string;
 
   /**
-   * Identifiants des projets autorisés
+   * Projets autorisés (vide = tous ceux du titulaire)
    */
-  projets: Array<string>;
+  projets?: Array<string>;
+  role?: 'agent' | 'admin' | 'chef_projet' | 'developpeur' | 'client_lecteur';
   utilisateur_id: string;
 }

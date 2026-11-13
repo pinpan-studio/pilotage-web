@@ -3,7 +3,7 @@
 
 export interface VersionDocumentDto {
   auteur: string;
-  auteur_type: 'humain' | 'agent';
+  auteur_type: 'agent' | 'humain';
   contenu: string;
   cree_le: string;
   figee: boolean;

@@ -3,7 +3,7 @@
 
 export interface VersionResumeDto {
   auteur: string;
-  auteur_type: 'humain' | 'agent';
+  auteur_type: 'agent' | 'humain';
   cree_le: string;
   figee: boolean;
   id: string;

@@ -26,6 +26,7 @@ import { SearchableSelectComponent } from '../shared/components/searchable-selec
   styles: [`.etapes { margin: 0; padding-left: 20px; font-size: var(--fs-body-sm); line-height: 1.6; li { margin-bottom: 14px; } }
     .cmds { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
     .projets { display: flex; flex-wrap: wrap; gap: 8px; }
+    .role-jeton { display: inline-block; padding: 1px 8px; margin-right: 4px; border-radius: 999px; font-size: 11px; font-weight: 600; background: var(--mat-sys-secondary-container); color: var(--mat-sys-on-secondary-container); }
     .bloc-code { position: relative; pre { margin: 0; padding: 14px 16px; border-radius: var(--radius-sm); background: var(--mat-sys-surface-container-high, var(--hover-bg));
       font: 12.5px/1.5 var(--font-mono, ui-monospace, monospace); overflow-x: auto; white-space: pre; } button { position: absolute; top: 8px; right: 8px; } }
     .jeton-neuf { padding: 16px; border-radius: var(--radius-md); background: var(--success-color-light); margin-bottom: 8px;
@@ -57,7 +58,7 @@ import { SearchableSelectComponent } from '../shared/components/searchable-selec
 
   @if (eq.estAdmin()) {
     <section class="card pane">
-      <header><h2>Nouveau jeton d'API</h2><p>Le jeton donne le rôle « agent » : jamais de validation, de signature ni de suppression, quels que soient les droits de son titulaire.</p></header>
+      <header><h2>Nouveau jeton d'API</h2><p>Choisissez le rôle du jeton : « Agent » (restreint : jamais de validation, de signature ni de suppression) ou un rôle humain, plafonné par celui du titulaire. Les écritures restent marquées « Agent ».</p></header>
       @if (neuf(); as n) {
         <div class="jeton-neuf"><strong><mat-icon>key</mat-icon>Jeton « {{ n.nom }} » créé</strong><p>{{ n.avertissement }}</p><app-copy-field [value]="n.jeton" label="Jeton d'API" /></div>
       }
@@ -66,12 +67,14 @@ import { SearchableSelectComponent } from '../shared/components/searchable-selec
           <div class="s-ctl"><div class="form-field"><div class="field-box"><input name="nom" [(ngModel)]="f.nom" placeholder="Poste de …" /></div></div></div></div>
         <div class="set"><div class="s-lbl"><strong>Développeur</strong><small>Titulaire du jeton ; ses écritures porteront son nom avec le badge Agent.</small></div>
           <div class="s-ctl"><app-searchable-select name="u" [(ngModel)]="f.utilisateur_id" [options]="optionsMembres()" icon="person" placeholder="Choisir" /></div></div>
-        <div class="set"><div class="s-lbl"><strong>Projets autorisés</strong><small>Le développeur doit aussi être membre du projet.</small></div>
+        <div class="set"><div class="s-lbl"><strong>Rôle du jeton</strong><small>Ne peut pas dépasser le rôle du titulaire.</small></div>
+          <div class="s-ctl"><app-searchable-select name="role" [(ngModel)]="f.role" [options]="optionsRoles()" icon="badge" placeholder="Rôle" /></div></div>
+        <div class="set"><div class="s-lbl"><strong>Projets autorisés</strong><small>Aucun sélectionné = tous les projets accessibles au titulaire.</small></div>
           <div class="s-ctl projets">@for (p of nav.projets() ?? []; track p.id) {
             <button type="button" class="chip-filter" [class.on]="f.projets.includes(p.id)" (click)="basculer(p.id)"><mat-icon>{{ f.projets.includes(p.id) ? 'check' : 'folder' }}</mat-icon>{{ p.nom }}</button> }</div></div>
         <div class="set"><div class="s-lbl"><strong>Expiration</strong><small>Facultative</small></div>
           <div class="s-ctl"><div class="form-field"><div class="field-box"><input name="exp" [matDatepicker]="dpExp" [(ngModel)]="f.expire" placeholder="jj/mm/aaaa" /><mat-datepicker-toggle [for]="dpExp" /><mat-datepicker #dpExp /></div></div></div></div>
-        <footer><button mat-flat-button color="primary" type="submit" [disabled]="f.nom.trim().length < 2 || !f.utilisateur_id || !f.projets.length || enCours()"><mat-icon>key</mat-icon>Créer le jeton</button></footer>
+        <footer><button mat-flat-button color="primary" type="submit" [disabled]="f.nom.trim().length < 2 || !f.utilisateur_id || !roleValide() || enCours()"><mat-icon>key</mat-icon>Créer le jeton</button></footer>
       </form>
     </section>
 
@@ -82,7 +85,7 @@ import { SearchableSelectComponent } from '../shared/components/searchable-selec
         <div class="set inline">
           <span class="ic-tile" [class]="'ic-tile ' + (actif(j) ? 'tone-success' : 'tone-neutral')"><mat-icon>{{ actif(j) ? 'key' : 'key_off' }}</mat-icon></span>
           <div class="s-lbl"><strong>{{ j.nom }} <code style="font-size: 11px">{{ j.prefixe }}…</code></strong>
-            <small>{{ nomMembre(j.utilisateur_id) }} · {{ nomsProjets(j.projets) }} · créé le {{ j.cree_le | dateFr }}
+            <small><span class="role-jeton">{{ libelleRole(j.role) }}</span> {{ nomMembre(j.utilisateur_id) }} · {{ j.projets.length ? nomsProjets(j.projets) : 'tous ses projets' }} · créé le {{ j.cree_le | dateFr }}
               · {{ j.revoque_le ? 'révoqué le ' + (j.revoque_le | dateFr) : j.utilise_le ? 'utilisé le ' + (j.utilise_le | dateFr: true) : 'jamais utilisé' }}{{ j.expire_le ? ' · expire le ' + (j.expire_le | dateFr) : '' }}</small></div>
           @if (actif(j)) {
             <button mat-stroked-button (click)="renouveler(j)" title="Révoque ce jeton et en crée un nouveau identique"><mat-icon>autorenew</mat-icon>Renouveler</button>
@@ -105,7 +108,18 @@ export class ParamClaudeCode {
   readonly membres = signal<MembreEquipeDto[]>([]);
   readonly neuf = signal<JetonApiCreeDto | null>(null);
   readonly enCours = signal(false);
-  f: { nom: string; utilisateur_id: string; projets: string[]; expire: Date | null } = { nom: '', utilisateur_id: '', projets: [], expire: null };
+  f: { nom: string; utilisateur_id: string; role: JetonApiDto['role']; projets: string[]; expire: Date | null } = { nom: '', utilisateur_id: '', role: 'agent', projets: [], expire: null };
+  private static readonly ROLES: { value: JetonApiDto['role']; label: string; description: string; rang: number }[] = [
+    { value: 'agent', label: 'Agent', description: 'Restreint : ni validation, ni signature, ni suppression', rang: 1 },
+    { value: 'admin', label: 'Administrateur', description: "Tous les droits de l'équipe", rang: 3 },
+    { value: 'chef_projet', label: 'Chef de projet', description: 'Gère et valide ses projets', rang: 2 },
+    { value: 'developpeur', label: 'Développeur', description: 'Travaille sur ses projets', rang: 1 },
+    { value: 'client_lecteur', label: 'Lecteur', description: 'Lecture seule', rang: 0 },
+  ];
+  private rangTitulaire() { const r = this.membres().find((m) => m.id === this.f.utilisateur_id)?.role; return ({ client_lecteur: 0, developpeur: 1, chef_projet: 2, admin: 3 } as any)[r ?? ''] ?? -1; }
+  optionsRoles() { const r = this.rangTitulaire(); return ParamClaudeCode.ROLES.filter((x) => x.rang <= r).map((x) => ({ value: x.value, label: x.label, description: x.description, icon: x.value === 'agent' ? 'smart_toy' : 'badge' })); }
+  roleValide() { return this.optionsRoles().some((o) => o.value === this.f.role); }
+  libelleRole(r: string) { return ParamClaudeCode.ROLES.find((x) => x.value === r)?.label ?? r; }
 
   private readonly url = CONFIG.apiUrl.replace(/\/$/, '');
   private readonly jetonAffiche = computed(() => this.neuf()?.jeton ?? 'plt_…');
@@ -144,7 +158,7 @@ export class ParamClaudeCode {
   });
   copier(texte: string) { navigator.clipboard?.writeText(texte).then(() => this.snack.open('Copié', undefined, { duration: 1500 })).catch(() => undefined); }
   readonly cmdKit = computed(() => `node ../pilotage-api/claude-kit/installer.mjs --repo . --api ${this.url} --projet ${this.nav.projetCourant() ?? this.nav.projets()?.[0]?.code ?? '<code-projet>'} --depot backend --clients tous`);
-  readonly optionsMembres = computed(() => this.membres().filter((m) => m.actif && m.role !== 'client_lecteur').map((m) => ({ value: m.id, label: m.nom, description: m.email, icon: 'person' })));
+  readonly optionsMembres = computed(() => this.membres().filter((m) => m.actif).map((m) => ({ value: m.id, label: m.nom, description: m.email, icon: 'person' })));
 
   constructor() {
     this.eq.charger(); this.nav.chargerProjets();
@@ -159,7 +173,7 @@ export class ParamClaudeCode {
   nomsProjets(ids: string[]) { return ids.map((id) => this.nav.projets()?.find((p) => p.id === id)?.nom ?? '?').join(', '); }
   private erreur(e: any) { const m = e?.error?.message; this.snack.open(Array.isArray(m) ? m.join(' · ') : m ?? 'Opération impossible', 'Fermer', { duration: 5000 }); }
 
-  async creer(body = { utilisateur_id: this.f.utilisateur_id, nom: this.f.nom.trim(), projets: this.f.projets, expire_le: versIso(this.f.expire) ?? undefined }) {
+  async creer(body = { utilisateur_id: this.f.utilisateur_id, nom: this.f.nom.trim(), role: this.f.role, projets: this.f.projets, expire_le: versIso(this.f.expire) ?? undefined }) {
     this.enCours.set(true);
     try { this.neuf.set(await this.api.invoke(jetonsCreer, { body })); this.f.nom = ''; this.charger(); window.scrollTo({ top: 0 }); }
     catch (e) { this.erreur(e); } finally { this.enCours.set(false); }
@@ -170,7 +184,7 @@ export class ParamClaudeCode {
   async renouveler(j: JetonApiDto) {
     try {
       await this.api.invoke(jetonsRevoquer, { id: j.id });
-      await this.creer({ utilisateur_id: j.utilisateur_id, nom: j.nom, projets: j.projets, expire_le: undefined });
+      await this.creer({ utilisateur_id: j.utilisateur_id, nom: j.nom, role: j.role, projets: j.projets, expire_le: undefined });
       this.snack.open('Ancien jeton révoqué : remplacez PILOTAGE_TOKEN sur le poste.', undefined, { duration: 5000 });
     } catch (e) { this.erreur(e); }
   }

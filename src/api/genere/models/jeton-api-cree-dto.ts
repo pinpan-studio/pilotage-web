@@ -11,6 +11,7 @@ export interface JetonApiCreeDto {
   prefixe: string;
   projets: Array<string>;
   revoque_le: string | null;
+  role: 'admin' | 'chef_projet' | 'developpeur' | 'client_lecteur' | 'agent';
   utilisateur_id: string;
   utilise_le: string | null;
 }

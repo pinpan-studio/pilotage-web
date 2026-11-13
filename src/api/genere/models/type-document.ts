@@ -14,7 +14,7 @@ export interface TypeDocument {
   ordre: number;
   organisation_id: string;
   phase: string;
-  producteur: 'humain' | 'agent' | 'mixte';
+  producteur: 'agent' | 'humain' | 'mixte';
   recurrent: boolean;
   signature: boolean;
   supprime_le: string | null;
