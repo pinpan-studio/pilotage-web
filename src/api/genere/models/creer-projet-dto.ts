@@ -14,4 +14,5 @@ export interface CreerProjetDto {
   depots?: Array<DepotACreerDto>;
   description?: string;
   nom: string;
+  visibilite?: 'equipe' | 'equipe_lecture' | 'membres';
 }

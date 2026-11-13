@@ -109,6 +109,8 @@ export type { EcritureModifierTache$Params as EcritureModifierTache$Params } fro
 export { ecritureModifierTache as ecritureModifierTache } from './fn/projets/ecriture-modifier-tache';
 export type { EcritureStatutFonctionnalite$Params as EcritureStatutFonctionnalite$Params } from './fn/projets/ecriture-statut-fonctionnalite';
 export { ecritureStatutFonctionnalite as ecritureStatutFonctionnalite } from './fn/projets/ecriture-statut-fonctionnalite';
+export type { ProjetsAdminVisibilite$Params as ProjetsAdminVisibilite$Params } from './fn/projets/projets-admin-visibilite';
+export { projetsAdminVisibilite as projetsAdminVisibilite } from './fn/projets/projets-admin-visibilite';
 export type { ProjetsAdminMembres$Params as ProjetsAdminMembres$Params } from './fn/projets/projets-admin-membres';
 export { projetsAdminMembres as projetsAdminMembres } from './fn/projets/projets-admin-membres';
 export type { ProjetsAdminDefinir$Params as ProjetsAdminDefinir$Params } from './fn/projets/projets-admin-definir';

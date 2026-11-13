@@ -128,3 +128,5 @@ export type { TypeDocument } from './models/type-document';
 export type { UtilisateurSessionDto } from './models/utilisateur-session-dto';
 export type { VersionDocumentDto } from './models/version-document-dto';
 export type { VersionResumeDto } from './models/version-resume-dto';
+export type { VisibiliteDto } from './models/visibilite-dto';
+export type { VisibiliteResultatDto } from './models/visibilite-resultat-dto';

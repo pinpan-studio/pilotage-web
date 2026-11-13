@@ -10,13 +10,14 @@ import { Api } from '../../api/genere/api';
 import { projetsAdminCreer } from '../../api/genere/functions';
 import { EquipeService } from '../noyau/equipe.service';
 import { NavigationService } from '../noyau/navigation.service';
+import { SearchableSelectComponent } from '../shared/components/searchable-select/searchable-select.component';
 
 const slug = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60);
 
 /** Création d'un projet (administrateur ou chef de projet) — disposition des réglages du ui-kit. */
 @Component({
   selector: 'app-nouveau-projet',
-  imports: [FormsModule, RouterLink, MatButtonModule, MatIconModule, MatDatepickerModule],
+  imports: [FormsModule, RouterLink, MatButtonModule, MatIconModule, MatDatepickerModule, SearchableSelectComponent],
   styleUrl: '../parametres/parametres.scss',
   styles: [`.depot { display: grid; grid-template-columns: 180px minmax(0, 1fr) 180px auto; gap: var(--space-2); margin-bottom: var(--space-2); @media (max-width: 700px) { grid-template-columns: 1fr; } }
     .form-pane { max-width: 860px; }`],
@@ -41,6 +42,8 @@ const slug = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCa
           <button mat-icon-button type="button" (click)="periode.open()" aria-label="Choisir la période"><mat-icon>calendar_month</mat-icon></button>
           <mat-date-range-picker #periode />
         </div></div></div></div>
+      <div class="set"><div class="s-lbl"><strong>Visibilité</strong><small>Qui, dans l'équipe, voit ce projet ? Modifiable ensuite (onglet Équipe).</small></div>
+        <div class="s-ctl"><app-searchable-select name="vis" [(ngModel)]="f.visibilite" [options]="optionsVisibilite" icon="visibility" /></div></div>
       <div class="set"><div class="s-lbl"><strong>Dépôts de code</strong><small>Un par dépôt (backend, web, mobile…) ; le kit Claude Code s'installe dans chacun.</small></div>
         <div class="s-ctl">
           @for (d of f.depots; track $index; let i = $index) {
@@ -66,12 +69,17 @@ export class NouveauProjet {
   readonly slug = slug;
   codeAuto = true;
   debut: Date | null = null; fin: Date | null = null;
-  f = { nom: '', code: '', client: '', description: '', depots: [{ nom: 'backend', url: '', stack: '' }, { nom: 'web', url: '', stack: '' }] };
+  readonly optionsVisibilite = [
+    { value: 'equipe', label: 'Équipe', description: 'Toute l’équipe voit et contribue', icon: 'groups' },
+    { value: 'equipe_lecture', label: 'Équipe, lecture seule', description: 'Toute l’équipe voit ; seuls les membres modifient', icon: 'visibility' },
+    { value: 'membres', label: 'Privé', description: 'Seuls les membres du projet', icon: 'lock' },
+  ];
+  f = { nom: '', code: '', client: '', description: '', visibilite: 'equipe' as 'equipe' | 'equipe_lecture' | 'membres', depots: [{ nom: 'backend', url: '', stack: '' }, { nom: 'web', url: '', stack: '' }] };
   constructor() { this.eq.charger(); }
   async creer() {
     this.enCours.set(true); this.erreur.set('');
     try {
-      const r = await this.api.invoke(projetsAdminCreer, { body: { code: this.f.code, nom: this.f.nom.trim(), client: this.f.client.trim() || undefined, description: this.f.description || undefined,
+      const r = await this.api.invoke(projetsAdminCreer, { body: { code: this.f.code, nom: this.f.nom.trim(), visibilite: this.f.visibilite, client: this.f.client.trim() || undefined, description: this.f.description || undefined,
         date_debut: versIso(this.debut) ?? undefined, date_livraison_prevue: versIso(this.fin) ?? undefined,
         depots: this.f.depots.filter((d) => d.nom.trim()).map((d) => ({ nom: d.nom.trim(), url: d.url.trim() || undefined, stack: d.stack.trim() || undefined })) } });
       await this.nav.chargerProjets(true);

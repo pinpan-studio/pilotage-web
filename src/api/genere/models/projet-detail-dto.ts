@@ -14,6 +14,11 @@ export interface ProjetDetailDto {
   id: string;
 
   /**
+   * L'utilisateur est-il membre déclaré du projet (sinon : accès par la visibilité « équipe » ou administrateur) ?
+   */
+  membre: boolean;
+
+  /**
    * Rôle de l'utilisateur courant sur ce projet (l'administrateur vaut chef de projet).
    */
   mon_role: 'chef_projet' | 'developpeur' | 'client_lecteur' | 'agent';
@@ -21,4 +26,5 @@ export interface ProjetDetailDto {
   revision_perimetre: boolean;
   seuil_rappel_doc: number;
   statut: string;
+  visibilite: 'equipe' | 'equipe_lecture' | 'membres';
 }

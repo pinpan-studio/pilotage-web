@@ -134,6 +134,8 @@ export type { TypeDocument } from './models/type-document';
 export type { UtilisateurSessionDto } from './models/utilisateur-session-dto';
 export type { VersionDocumentDto } from './models/version-document-dto';
 export type { VersionResumeDto } from './models/version-resume-dto';
+export type { VisibiliteDto } from './models/visibilite-dto';
+export type { VisibiliteResultatDto } from './models/visibilite-resultat-dto';
 
 export type { SanteSante$Params as SanteSante$Params } from './fn/sante/sante-sante';
 export { santeSante as santeSante } from './fn/sante/sante-sante';
@@ -243,6 +245,8 @@ export type { EcritureModifierTache$Params as EcritureModifierTache$Params } fro
 export { ecritureModifierTache as ecritureModifierTache } from './fn/projets/ecriture-modifier-tache';
 export type { EcritureStatutFonctionnalite$Params as EcritureStatutFonctionnalite$Params } from './fn/projets/ecriture-statut-fonctionnalite';
 export { ecritureStatutFonctionnalite as ecritureStatutFonctionnalite } from './fn/projets/ecriture-statut-fonctionnalite';
+export type { ProjetsAdminVisibilite$Params as ProjetsAdminVisibilite$Params } from './fn/projets/projets-admin-visibilite';
+export { projetsAdminVisibilite as projetsAdminVisibilite } from './fn/projets/projets-admin-visibilite';
 export type { ProjetsAdminMembres$Params as ProjetsAdminMembres$Params } from './fn/projets/projets-admin-membres';
 export { projetsAdminMembres as projetsAdminMembres } from './fn/projets/projets-admin-membres';
 export type { ProjetsAdminDefinir$Params as ProjetsAdminDefinir$Params } from './fn/projets/projets-admin-definir';

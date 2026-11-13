@@ -4,7 +4,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Api } from '../../api/genere/api';
-import { equipesMembres, projetsAdminDefinir, projetsAdminMembres, projetsAdminRetirer } from '../../api/genere/functions';
+import { equipesMembres, projetsAdminDefinir, projetsAdminMembres, projetsAdminRetirer, projetsAdminVisibilite } from '../../api/genere/functions';
 import { MembreEquipeDto, MembreProjetDto } from '../../api/genere/models';
 import { PIPES } from '../noyau/pipes';
 import { ReferentielsService } from '../noyau/referentiels.service';
@@ -20,6 +20,9 @@ import { SearchableSelectComponent } from '../shared/components/searchable-selec
   imports: [FormsModule, MatButtonModule, MatIconModule, SearchableSelectComponent, Chargement, Statut, ...PIPES],
   styles: [`.ajout { display: grid; grid-template-columns: minmax(0, 1fr) 180px auto; gap: var(--space-3); align-items: end; padding: 0 var(--space-5) var(--space-5); @media (max-width: 700px) { grid-template-columns: 1fr; } }
     .role-sel { width: 180px; flex: 0 0 180px; } @media (max-width: 600px) { .role-sel { width: 100%; flex-basis: 100%; } }
+    .vis { all: unset; display: flex; align-items: center; gap: var(--space-3); padding: 10px 20px; cursor: pointer; border-radius: 12px; } .vis:disabled { cursor: default; }
+    .vis.on { background: var(--mat-sys-secondary-container); } .vis:not(:disabled):not(.on):hover { background: var(--mat-sys-surface-container-high); }
+    .coche { font-size: 16px; width: 16px; height: 16px; vertical-align: -3px; margin-left: 6px; color: var(--mat-sys-primary); }
     .ava-img { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; flex: 0 0 36px; }`],
   template: `
   <div class="grid-3">
@@ -50,6 +53,18 @@ import { SearchableSelectComponent } from '../shared/components/searchable-selec
       }
     </section>
     <section class="card">
+      <div class="card-head"><h2>Visibilité dans l'équipe</h2></div>
+      <div class="rows" style="padding-bottom: 8px">
+        @for (v of visibilites; track v.value) {
+          <button type="button" class="row vis" [class.on]="p.detail()?.visibilite === v.value" [disabled]="!gestion()" (click)="changerVisibilite(v.value)">
+            <span class="ic-tile" [class]="'ic-tile ' + (p.detail()?.visibilite === v.value ? 'tone-info' : 'tone-neutral')"><mat-icon>{{ v.icon }}</mat-icon></span>
+            <div class="grow"><strong>{{ v.label }}@if (p.detail()?.visibilite === v.value) { <mat-icon class="coche">check_circle</mat-icon> }</strong><small style="white-space: normal">{{ v.description }}</small></div>
+          </button>
+        }
+      </div>
+      <p class="muted" style="padding: 0 20px 12px; font-size: 12.5px">Les clients (lecteurs de l'équipe) ne voient que les projets dont ils sont membres.@if (p.detail() && !p.detail()!.membre) { Vous accédez à ce projet {{ p.estChef() ? 'en tant qu’administrateur' : 'par sa visibilité « équipe »' }}. }</p>
+    </section>
+    <section class="card">
       <div class="card-head"><h2>Droits sur le projet</h2></div>
       <div class="rows" style="padding-bottom: 12px">
         <div class="row"><span class="ic-tile tone-info"><mat-icon>manage_accounts</mat-icon></span><div class="grow"><strong>Chef de projet</strong><small class="wrap" style="white-space: normal">Gère les membres ; seul à valider et signer.</small></div></div>
@@ -70,6 +85,15 @@ export class ProjetEquipe {
   readonly membres = signal<MembreProjetDto[] | null>(null);
   readonly equipe = signal<MembreEquipeDto[]>([]);
   ajout = { utilisateur_id: '', role: 'developpeur' };
+  readonly visibilites = [
+    { value: 'equipe' as const, label: 'Équipe', icon: 'groups', description: 'Toute l’équipe voit le projet ; les non-membres y contribuent comme développeurs (sans valider ni signer).' },
+    { value: 'equipe_lecture' as const, label: 'Équipe, lecture seule', icon: 'visibility', description: 'Toute l’équipe voit le projet ; seuls ses membres le modifient.' },
+    { value: 'membres' as const, label: 'Privé', icon: 'lock', description: 'Seuls les membres du projet (et les administrateurs) le voient.' },
+  ];
+  async changerVisibilite(v: 'equipe' | 'equipe_lecture' | 'membres') {
+    if (!this.gestion() || this.p.detail()?.visibilite === v) return;
+    try { await this.api.invoke(projetsAdminVisibilite, { code: this.p.code(), body: { visibilite: v } }); await this.p.charger(this.p.code()); this.snack.open('Visibilité mise à jour', undefined, { duration: 2000 }); } catch (e) { this.erreur(e); }
+  }
   readonly gestion = computed(() => {
     const u = this.auth.utilisateur(); if (!u) return false;
     return u.role === 'admin' || !!this.membres()?.some((m) => m.utilisateur_id === u.id && m.role === 'chef_projet');
