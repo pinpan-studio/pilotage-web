@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>Champi Run</title>
+<style>
+  html,body{margin:0;height:100%;background:#1a1a2e;color:#fff;font-family:system-ui,sans-serif;overflow:hidden}
+  #wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%}
+  canvas{image-rendering:pixelated;width:min(100vw,calc(100vh*16/9));aspect-ratio:16/9;background:#6bb6ff}
+  #touch{position:fixed;bottom:12px;left:0;right:0;display:none;justify-content:space-between;padding:0 16px;pointer-events:none}
+  #touch div{display:flex;gap:12px}
+  #touch button{pointer-events:auto;width:64px;height:64px;border-radius:50%;border:0;background:#fff4;color:#fff;font-size:26px}
+  @media (pointer:coarse){#touch{display:flex}}
+  p{opacity:.7;font-size:13px;margin:8px}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="c" width="512" height="288"></canvas>
+  <p>← → pour bouger · Espace / ↑ pour sauter · R pour recommencer</p>
+</div>
+<div id="touch">
+  <div><button data-k="left">◀</button><button data-k="right">▶</button></div>
+  <div><button data-k="jump">⤒</button></div>
+</div>
+<script src="game.js"></script>
+</body>
+</html>
