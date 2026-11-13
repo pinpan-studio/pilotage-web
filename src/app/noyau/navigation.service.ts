@@ -12,6 +12,7 @@ export const ONGLETS_PROJET = [
   { seg: 'taches', label: 'Tâches', icon: 'task_alt' },
   { seg: 'livrables', label: 'Livrables', icon: 'description' },
   { seg: 'journal', label: 'Journal', icon: 'history' },
+  { seg: 'equipe', label: 'Équipe', icon: 'group' },
 ];
 
 /** État de navigation partagé : liste des projets accessibles et projet courant (d'après l'URL). */

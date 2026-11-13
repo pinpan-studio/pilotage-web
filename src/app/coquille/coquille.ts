@@ -14,6 +14,8 @@ import { ThemePickerComponent } from '../shared/components/theme-picker/theme-pi
 import { AppNotification, CommandPaletteService, KbdComponent, NotificationCenterComponent, PaletteCommand } from '../shared/components/interaction';
 import { AuthService } from '../noyau/auth.service';
 import { NavigationService, ONGLETS_PROJET } from '../noyau/navigation.service';
+import { EquipeService } from '../noyau/equipe.service';
+import { LibellePipe } from '../noyau/pipes';
 
 interface Entree { label: string; icon: string; path: string; exact?: boolean; badge?: number | null }
 interface Groupe { label: string; icon: string; items: Entree[]; collapsible?: boolean }
@@ -27,7 +29,7 @@ interface Groupe { label: string; icon: string; items: Entree[]; collapsible?: b
 @Component({
   selector: 'app-coquille',
   imports: [RouterOutlet, RouterLink, RouterLinkActive, MatSidenavModule, MatToolbarModule, MatIconModule, MatButtonModule, MatTooltipModule, MatMenuModule, MatDividerModule,
-    ThemePickerComponent, NotificationCenterComponent, KbdComponent],
+    ThemePickerComponent, NotificationCenterComponent, KbdComponent, LibellePipe],
   styleUrl: './coquille.scss',
   template: `
   <mat-sidenav-container class="kit-container">
@@ -35,7 +37,19 @@ interface Groupe { label: string; icon: string; items: Entree[]; collapsible?: b
       <div class="sidenav-inner">
         <div class="sidenav-header">
           <span class="brand-logo brand-mark"><mat-icon>insights</mat-icon></span>
-          <div class="header-text"><span class="app-title">Pilotage</span><span class="app-subtitle">{{ espace() }}</span></div>
+          <button type="button" class="header-text equipe-btn" [matMenuTriggerFor]="menuEquipes" aria-label="Changer d'équipe">
+            <span class="app-title">{{ eq.courante()?.nom ?? 'Pilotage' }}</span><span class="app-subtitle">{{ eq.courante() ? (eq.courante()!.role | libelle) : 'Espace de travail' }} <mat-icon>unfold_more</mat-icon></span>
+          </button>
+          <mat-menu #menuEquipes="matMenu" class="m3-dropdown-menu">
+            <div class="menu-me"><strong>Espaces de travail</strong><small>Chaque équipe a ses projets et ses membres</small></div>
+            <mat-divider />
+            @for (e of eq.equipes(); track e.id) {
+              <button mat-menu-item (click)="!e.courante && eq.changer(e.id)"><mat-icon>{{ e.courante ? 'check' : 'workspaces' }}</mat-icon>{{ e.nom }}<span class="muted" style="margin-left: 8px; font-size: 12px">{{ e.nb_projets }} projet(s)</span></button>
+            }
+            <mat-divider />
+            <a mat-menu-item routerLink="/parametres/equipe"><mat-icon>group</mat-icon>Gérer l'équipe</a>
+            <a mat-menu-item routerLink="/parametres/equipes"><mat-icon>add</mat-icon>Créer une équipe</a>
+          </mat-menu>
           @if (mobile()) { <button mat-icon-button (click)="sidenav.close()" class="close-drawer-btn" aria-label="Fermer le menu"><mat-icon>chevron_left</mat-icon></button> }
         </div>
         <div class="nav-search">
@@ -98,6 +112,7 @@ export class Coquille {
   readonly theme = inject(ThemeService);
   readonly palette = inject(CommandPaletteService);
   readonly nav = inject(NavigationService);
+  readonly eq = inject(EquipeService);
   private readonly router = inject(Router);
   readonly mobile = signal(false);
   readonly recherche = signal('');
@@ -115,6 +130,10 @@ export class Coquille {
       badge: o.seg === 'synthese' ? (p?.nb_alertes.haute || null) : null })) });
     const autres = (this.nav.projets() ?? []).filter((x) => x.code !== code);
     if (autres.length) g.push({ label: 'Projets', icon: 'folder', collapsible: true, items: autres.map((x) => ({ label: x.nom, icon: 'folder', path: `/projets/${x.code}`, badge: x.nb_alertes.haute || null })) });
+    g.push({ label: 'Équipe', icon: 'groups', items: [
+      { label: 'Membres et rôles', icon: 'group', path: '/parametres/equipe' },
+      { label: 'Mes équipes', icon: 'workspaces', path: '/parametres/equipes' },
+    ] });
     g.push({ label: 'Compte', icon: 'manage_accounts', items: [
       { label: 'Mon compte', icon: 'person', path: '/parametres/compte' },
       { label: 'Sécurité', icon: 'shield', path: '/parametres/securite' },
@@ -130,6 +149,7 @@ export class Coquille {
   constructor() {
     inject(BreakpointObserver).observe('(max-width: 959.98px)').subscribe((r) => this.mobile.set(r.matches));
     this.nav.chargerProjets();
+    this.eq.charger();
     this.router.events.pipe(filter((e) => e instanceof NavigationEnd)).subscribe(() => this.majTitre());
     this.majTitre();
     let desinscrire = () => {};
@@ -139,6 +159,9 @@ export class Coquille {
         { id: 'nav-portefeuille', label: 'Portefeuille', group: 'Aller à', icon: 'space_dashboard', route: '/' },
         ...(this.nav.projets() ?? []).flatMap((p) => ONGLETS_PROJET.map((o) => ({ id: `nav-${p.code}-${o.seg}`, label: `${p.nom} — ${o.label}`, group: 'Projets', icon: o.icon, route: `/projets/${p.code}/${o.seg}` }))),
         { id: 'nav-compte', label: 'Mon compte', group: 'Compte', icon: 'person', route: '/parametres/compte' },
+        { id: 'nav-equipe', label: 'Membres et rôles de l’équipe', group: 'Équipe', icon: 'group', route: '/parametres/equipe' },
+        { id: 'nav-nouveau-projet', label: 'Nouveau projet', group: 'Actions', icon: 'create_new_folder', route: '/projets-nouveau' },
+        ...this.eq.equipes().filter((e) => !e.courante).map((e) => ({ id: `eq-${e.id}`, label: `Passer à l’équipe ${e.nom}`, group: 'Équipe', icon: 'workspaces', action: () => this.eq.changer(e.id) })),
         { id: 'nav-securite', label: 'Sécurité et sessions', group: 'Compte', icon: 'shield', route: '/parametres/securite' },
         { id: 'theme', label: 'Changer de thème clair / sombre', group: 'Actions', icon: 'contrast', action: () => this.theme.toggle() },
         { id: 'deconnexion', label: 'Se déconnecter', group: 'Compte', icon: 'logout', action: () => this.auth.deconnexion() },

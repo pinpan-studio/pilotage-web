@@ -14,6 +14,7 @@ export const routes: Routes = [
   { path: 'connexion', title: 'Connexion — Pilotage', loadComponent: () => import('./pages/connexion/connexion').then((m) => m.Connexion) },
   { path: '', canActivate: [connecte], loadComponent: () => import('./coquille/coquille').then((m) => m.Coquille), children: [
     { path: '', title: 'Portefeuille — Pilotage', data: { titre: 'Portefeuille' }, loadComponent: () => import('./pages/portefeuille').then((m) => m.Portefeuille) },
+    { path: 'projets-nouveau', data: { titre: 'Nouveau projet' }, title: 'Nouveau projet — Pilotage', loadComponent: () => import('./pages/nouveau-projet').then((m) => m.NouveauProjet) },
     { path: 'projets/:code', data: { titre: 'Projet' }, loadComponent: () => import('./pages/projet').then((m) => m.Projet), children: [
       { path: '', pathMatch: 'full', redirectTo: 'synthese' },
       { path: 'synthese', data: { titre: "Vue d'ensemble" }, title: 'Synthèse — Pilotage', loadComponent: () => import('./pages/synthese').then((m) => m.Synthese) },
@@ -24,11 +25,14 @@ export const routes: Routes = [
       { path: 'taches', data: { titre: 'Tâches' }, title: 'Tâches — Pilotage', loadComponent: () => import('./pages/taches').then((m) => m.Taches) },
       { path: 'livrables', data: { titre: "Livrables" }, title: 'Livrables — Pilotage', loadComponent: () => import('./pages/livrables').then((m) => m.Livrables) },
       { path: 'livrables/:doc', data: { titre: 'Document' }, title: 'Document — Pilotage', loadComponent: () => import('./pages/livrables').then((m) => m.Document) },
+      { path: 'equipe', data: { titre: 'Équipe du projet' }, title: 'Équipe du projet — Pilotage', loadComponent: () => import('./pages/projet-equipe').then((m) => m.ProjetEquipe) },
       { path: 'journal', data: { titre: "Journal" }, title: 'Journal — Pilotage', loadComponent: () => import('./pages/journal').then((m) => m.Journal) },
     ] },
     { path: 'parametres', data: { titre: 'Paramètres' }, loadComponent: () => import('./parametres/parametres').then((m) => m.Parametres), children: [
       { path: '', pathMatch: 'full', redirectTo: 'compte' },
       { path: 'compte', data: { titre: 'Mon compte', fil: 'Paramètres' }, title: 'Mon compte — Pilotage', loadComponent: () => import('./parametres/compte').then((m) => m.Compte) },
+      { path: 'equipe', data: { titre: 'Équipe et rôles', fil: 'Paramètres' }, title: 'Équipe — Pilotage', loadComponent: () => import('./parametres/equipe').then((m) => m.ParamEquipe) },
+      { path: 'equipes', data: { titre: 'Mes équipes', fil: 'Paramètres' }, title: 'Mes équipes — Pilotage', loadComponent: () => import('./parametres/equipes').then((m) => m.ParamEquipes) },
       { path: 'securite', data: { titre: 'Sécurité', fil: 'Paramètres' }, title: 'Sécurité — Pilotage', loadComponent: () => import('./parametres/securite').then((m) => m.Securite) },
     ] },
   ] },

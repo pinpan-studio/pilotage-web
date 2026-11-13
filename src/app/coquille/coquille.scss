@@ -168,3 +168,6 @@
 .brand-mark { width: 32px; height: 30px; border-radius: 9px; display: inline-flex; align-items: center; justify-content: center; flex: 0 0 32px;
   background: var(--mat-sys-primary, var(--primary-color)); color: var(--mat-sys-on-primary, #fff); mat-icon { font-size: 19px; width: 19px; height: 19px; } }
 img.avatar { display: block; }
+.equipe-btn { border: 0; background: none; padding: 0; text-align: left; cursor: pointer; color: inherit; min-width: 0; display: flex; flex-direction: column;
+  .app-subtitle { display: inline-flex; align-items: center; gap: 2px; mat-icon { font-size: 14px; width: 14px; height: 14px; } }
+  &:hover .app-title { color: var(--primary-color); } }

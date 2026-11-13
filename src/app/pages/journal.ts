@@ -57,7 +57,8 @@ export class Journal {
 
   readonly depots = computed<PlanningGroup[]>(() => (this.p.detail()?.depots ?? []).map((d) => ({ key: d.nom, label: d.nom, subtitle: d.stack, icon: 'source' })));
   readonly itemsEvenements = computed<PlanningItem[]>(() => this.elements().map((e) => ({
-    id: e.id, ref: e.hash || undefined, title: e.evt === 'commit' ? e.message : (e.fichier || e.commande || e.message), group: e.depot ?? undefined,
+    id: e.id, ref: dateHeure(e.ts).replace(/\/\d{4}/, '').replace(' ', ' · '),
+    title: `${e.hash ? e.hash + ' — ' : ''}${e.evt === 'commit' ? e.message : (e.fichier || e.commande || e.message)} · ${e.auteur}`, group: e.depot ?? undefined,
     start: e.ts, assignee: e.auteur, tone: TONS[e.evt] ?? 'neutral', badge: { label: e.evt, tone: TONS[e.evt] ?? 'neutral' },
     description: dateHeure(e.ts), tags: e.fonctionnalites, fields: { evt: e.evt } })));
   readonly itemsSessions = computed<PlanningItem[]>(() => (this.sessions() ?? []).map((s) => {

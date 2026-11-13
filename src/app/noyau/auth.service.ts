@@ -34,6 +34,9 @@ export class AuthService {
     localStorage.setItem(CLE, JSON.stringify({ refresh: r.jeton_rafraichissement, utilisateur: r.utilisateur }));
   }
 
+  /** Applique une session obtenue autrement (changement d'équipe). */
+  appliquerSession(s: { jeton_acces: string; jeton_rafraichissement: string; utilisateur: Utilisateur }) { this.memoriser(s); }
+
   async connexionGoogle(credential: string) {
     this.memoriser(await this.api.invoke(authGoogle, { body: { credential } }));
   }

@@ -6,6 +6,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { ProjetResumeDto } from '../../api/genere/models';
 import { PIPES } from '../noyau/pipes';
 import { NavigationService } from '../noyau/navigation.service';
+import { EquipeService } from '../noyau/equipe.service';
 import { date } from '../noyau/format';
 import { StatCounterComponent } from '../shared/components/data/stat-counter.component';
 import { DataColumn, DataTableComponent } from '../shared/components/data/data-table.component';
@@ -21,11 +22,12 @@ interface Ligne { id: string; code: string; nom: string; client: string; avancem
   template: `
   <div class="pl-page">
     <div class="page-head">
-      <div class="titles"><span class="eyebrow">{{ aujourdhui }}</span><h1>Portefeuille</h1><p>{{ projets()?.length ?? 0 }} projet(s) suivi(s) · indicateurs recalculés à chaque visite.</p></div>
-      <div class="actions"><button mat-stroked-button (click)="nav.chargerProjets(true)"><mat-icon>refresh</mat-icon>Actualiser</button></div>
+      <div class="titles"><span class="eyebrow">{{ aujourdhui }}</span><h1>Portefeuille</h1><p>{{ eq.courante()?.nom ?? 'Équipe' }} · {{ projets()?.length ?? 0 }} projet(s) suivi(s) · indicateurs recalculés à chaque visite.</p></div>
+      <div class="actions"><button mat-stroked-button (click)="nav.chargerProjets(true)"><mat-icon>refresh</mat-icon>Actualiser</button>
+        @if (eq.peutCreerProjet()) { <a mat-flat-button color="primary" routerLink="/projets-nouveau"><mat-icon>create_new_folder</mat-icon>Nouveau projet</a> }</div>
     </div>
     @if (!projets()) { <app-skeleton variant="card" [count]="4" /> }
-    @else if (!projets()!.length) { <app-empty-state icon="folder_off" title="Aucun projet" subtitle="Vous n'avez accès à aucun projet pour le moment." /> }
+    @else if (!projets()!.length) { <app-empty-state icon="folder_off" title="Aucun projet" [subtitle]="eq.peutCreerProjet() ? 'Créez le premier projet de l’équipe.' : 'Vous n’êtes membre d’aucun projet pour le moment.'" [actionLabel]="eq.peutCreerProjet() ? 'Nouveau projet' : ''" (actionClick)="router.navigateByUrl('/projets-nouveau')" /> }
     @else {
       <div class="kpis">
         <div class="card kpi"><span class="k-label"><mat-icon>folder</mat-icon>Projets en cours</span><span class="k-val"><app-stat-counter [value]="enCours()" /></span><span class="k-foot">sur {{ projets()!.length }} au total</span></div>
@@ -59,7 +61,8 @@ interface Ligne { id: string; code: string; nom: string; client: string; avancem
 })
 export class Portefeuille {
   readonly nav = inject(NavigationService);
-  private readonly router = inject(Router);
+  readonly eq = inject(EquipeService);
+  readonly router = inject(Router);
   readonly aujourdhui = new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Africa/Abidjan' }).format(new Date());
   readonly projets = this.nav.projets;
   private readonly l = computed(() => this.projets() ?? []);
@@ -85,6 +88,6 @@ export class Portefeuille {
     id: p.id, code: p.code, nom: p.nom, client: p.client, avancement: Math.round(p.avancement * 100), recette: Math.round((p.taux_recette ?? 0) * 100),
     livrables: Math.round((p.avancement_documents ?? 0) * 100), retours: p.nb_retours_ouverts, alertes: p.nb_alertes.haute, livraison: date(p.date_livraison_prevue),
     jalon: p.prochain_jalon ? `${p.prochain_jalon.nom} (${date(p.prochain_jalon.date_prevue)})` : '—' })));
-  constructor() { this.nav.chargerProjets(); }
+  constructor() { this.nav.chargerProjets(); this.eq.charger(); }
   ouvrir(l: Ligne) { this.router.navigate(['/projets', l.code]); }
 }

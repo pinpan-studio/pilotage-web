@@ -33,7 +33,8 @@ import { ThemeService } from '../../core/services/theme.service';
     <main class="panel side">
       <div class="brand compact"><mat-icon>insights</mat-icon><span>Pilotage</span></div>
       <div class="form">
-        <div class="head"><h1>Bon retour !</h1><p>Connectez-vous pour accéder à votre espace.</p></div>
+        <div class="head">@if (invitation) { <h1>Bienvenue !</h1><p>Vous avez été invité·e dans une équipe Pilotage. Connectez-vous avec le compte Google <strong>{{ invitation }}</strong>.</p> }
+          @else { <h1>Bon retour !</h1><p>Connectez-vous pour accéder à votre espace.</p> }</div>
         @if (google.clientId()) {
           <div class="google-zone"><div #boutonGoogle class="google-btn"></div>@if (enCours()) { <mat-spinner diameter="22" /> }</div>
           @if (!emailVisible()) { <p class="alt"><button type="button" class="link lien-btn" (click)="emailVisible.set(true)">Connexion par e-mail et mot de passe</button></p> }
@@ -71,6 +72,7 @@ export class Connexion implements AfterViewInit {
   private readonly theme = inject(ThemeService);
   private readonly boutonGoogle = viewChild<ElementRef<HTMLElement>>('boutonGoogle');
   readonly emailVisible = signal(false);
+  readonly invitation = new URLSearchParams(location.search).get('invitation');
 
   ngAfterViewInit() {
     const hote = this.boutonGoogle()?.nativeElement;

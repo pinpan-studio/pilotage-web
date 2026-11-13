@@ -13,6 +13,8 @@ export interface ReferentielsDto {
   priorites: Array<EntreeReferentielDto>;
   producteurs: Array<EntreeReferentielDto>;
   resultats_test: Array<EntreeReferentielDto>;
+  roles_equipe: Array<EntreeReferentielDto>;
+  roles_projet: Array<EntreeReferentielDto>;
   statuts_action: Array<EntreeReferentielDto>;
   statuts_depot: Array<EntreeReferentielDto>;
   statuts_document: Array<EntreeReferentielDto>;
