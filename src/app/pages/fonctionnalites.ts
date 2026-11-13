@@ -1,3 +1,4 @@
+import { SchemasDirective } from '../noyau/schemas';
 import { Component, computed, effect, inject, input, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -24,7 +25,7 @@ import { ProjetCourant } from './projet';
 /** Fonctionnalités : vue groupée du ui-kit en liste (layout="list"), un groupe par lot. */
 @Component({
   selector: 'app-fonctionnalites',
-  imports: [GroupedBoardComponent, Chargement, FormsModule, MatButtonModule, MatIconModule, SearchableSelectComponent],
+  imports: [SchemasDirective, GroupedBoardComponent, Chargement, FormsModule, MatButtonModule, MatIconModule, SearchableSelectComponent],
   styles: [`.card.plan { padding: var(--space-4); }`],
   template: `
   @if (p.peutEcrire()) { <div class="tete"><span class="esp"></span><button mat-flat-button color="primary" (click)="form.set(!form())"><mat-icon>add</mat-icon>Nouvelle fonctionnalité</button></div> }
@@ -90,7 +91,7 @@ export class Fonctionnalites {
 /** Fiche d'une fonctionnalité — gabarit de documentation du ui-kit (examples/app/docs). */
 @Component({
   selector: 'app-fonctionnalite',
-  imports: [MatIconModule, MatProgressBarModule, Statut, Lecteur, Chargement, FormsModule, MatButtonModule, SearchableSelectComponent, ...PIPES],
+  imports: [SchemasDirective, MatIconModule, MatProgressBarModule, Statut, Lecteur, Chargement, FormsModule, MatButtonModule, SearchableSelectComponent, ...PIPES],
   styles: [`.boutons { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; } .boutons button { justify-content: flex-start; }`],
   template: `
   @if (f(); as f) {
@@ -109,7 +110,7 @@ export class Fonctionnalites {
       }
       <div class="prose">
         <h2 id="description">Description</h2>
-        @if (f.description) { <div [innerHTML]="descriptionHtml()"></div> } @else { <p class="muted">Aucune description ni critère d'acceptation.</p> }
+        @if (f.description) { <div appSchemas [innerHTML]="descriptionHtml()"></div> } @else { <p class="muted">Aucune description ni critère d'acceptation.</p> }
         <h2 id="avancement">Avancement</h2>
         <div class="goals" style="padding-top: 0"><div class="goal"><div class="g-top"><span>Global</span><strong>{{ f.avancement | pct }}</strong></div><mat-progress-bar mode="determinate" [value]="f.avancement * 100" /></div>
           @for (d of f.depots; track d.depot) { <div class="goal"><div class="g-top"><span>{{ d.depot }}</span><app-statut [code]="d.statut" /></div></div> }</div>

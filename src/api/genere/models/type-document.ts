@@ -8,6 +8,11 @@ export interface TypeDocument {
   description: string;
   emplacement: string;
   id: string;
+
+  /**
+   * Indispensable dans tout projet de développement, ou facultatif (peut être déclaré « sans objet »).
+   */
+  importance: 'facultatif' | 'indispensable';
   livrable: boolean;
   modele_id: string | null;
   modifie_le: string;

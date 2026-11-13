@@ -1,3 +1,4 @@
+import { SchemasDirective } from '../noyau/schemas';
 import { Component, computed, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -16,7 +17,7 @@ import { ProjetCourant } from './projet';
 /** Cadrage : texte du TDR (Markdown), révision de périmètre, exigences. */
 @Component({
   selector: 'app-cadrage',
-  imports: [FormsModule, MatButtonModule, MatIconModule, Chargement, SearchableSelectComponent, EmptyStateComponent],
+  imports: [SchemasDirective, FormsModule, MatButtonModule, MatIconModule, Chargement, SearchableSelectComponent, EmptyStateComponent],
   styles: [`.editeur { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); } .editeur textarea { font: 13px/1.5 ui-monospace, monospace; min-height: 460px; }
     .apercu { border: 1px solid var(--mat-sys-outline-variant); border-radius: 12px; padding: var(--space-3); overflow: auto; max-height: 560px; }
     .revision { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 12px; margin-bottom: var(--space-4); background: var(--mat-sys-surface-container); }
@@ -47,11 +48,11 @@ import { ProjetCourant } from './projet';
       <section class="card pane">
         <div class="editeur">
           <div class="form-field"><div class="field-box textarea-box"><textarea [(ngModel)]="texte" (ngModelChange)="edition.set($event)" name="tdr"></textarea></div></div>
-          <div class="apercu prose" [innerHTML]="apercu()"></div>
+          <div class="apercu prose" appSchemas [innerHTML]="apercu()"></div>
         </div>
         <div class="actions-form"><button mat-button (click)="edition.set(null)">Annuler</button><button mat-flat-button color="primary" (click)="enregistrerTdr()"><mat-icon>save</mat-icon>Enregistrer</button></div>
       </section>
-    } @else if (tdr()) { <section class="card pane prose" [innerHTML]="rendu()"></section> }
+    } @else if (tdr()) { <section class="card pane prose" appSchemas [innerHTML]="rendu()"></section> }
     @else { <app-empty-state icon="article" title="TDR non saisi" subtitle="Collez ici le cahier des charges du client (Markdown) ; le scan signé se dépose dans Livrables → TDR." /> }
   } @else {
     @if (formE(); as e) {

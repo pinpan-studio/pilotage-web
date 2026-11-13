@@ -39,6 +39,12 @@ export type { ExportExporter$VndOpenxmlformatsOfficedocumentWordprocessingmlDocu
 export { exportExporter$VndOpenxmlformatsOfficedocumentWordprocessingmlDocument as exportExporter$VndOpenxmlformatsOfficedocumentWordprocessingmlDocument } from './fn/livrables/export-exporter-vnd-openxmlformats-officedocument-wordprocessingml-document';
 export type { ExportDiff$Params as ExportDiff$Params } from './fn/livrables/export-diff';
 export { exportDiff as exportDiff } from './fn/livrables/export-diff';
+export type { GenerationGenerables$Params as GenerationGenerables$Params } from './fn/livrables/generation-generables';
+export { generationGenerables as generationGenerables } from './fn/livrables/generation-generables';
+export type { GenerationApercu$Params as GenerationApercu$Params } from './fn/livrables/generation-apercu';
+export { generationApercu as generationApercu } from './fn/livrables/generation-apercu';
+export type { GenerationGenerer$Params as GenerationGenerer$Params } from './fn/livrables/generation-generer';
+export { generationGenerer as generationGenerer } from './fn/livrables/generation-generer';
 export type { NotificationsLister$Params as NotificationsLister$Params } from './fn/notifications/notifications-lister';
 export { notificationsLister as notificationsLister } from './fn/notifications/notifications-lister';
 export type { ReferentielsReferentiels$Params as ReferentielsReferentiels$Params } from './fn/referentiels/referentiels-referentiels';

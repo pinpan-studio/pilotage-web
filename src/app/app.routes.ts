@@ -24,6 +24,8 @@ export const routes: Routes = [
       { path: 'planning', redirectTo: 'taches' },
       { path: 'taches/:ref', data: { titre: 'Tâche' }, title: 'Tâche — Pilotage', loadComponent: () => import('./pages/tache').then((m) => m.Tache) },
       { path: 'taches', data: { titre: 'Tâches' }, title: 'Tâches — Pilotage', loadComponent: () => import('./pages/taches').then((m) => m.Taches) },
+      { path: 'documentation', data: { titre: 'Documentation' }, title: 'Documentation — Pilotage', loadComponent: () => import('./pages/documentation').then((m) => m.Documentation) },
+      { path: 'documentation/:doc', data: { titre: 'Documentation' }, title: 'Documentation — Pilotage', loadComponent: () => import('./pages/documentation').then((m) => m.DocArticle) },
       { path: 'livrables', data: { titre: "Livrables" }, title: 'Livrables — Pilotage', loadComponent: () => import('./pages/livrables').then((m) => m.Livrables) },
       { path: 'livrables/:doc', data: { titre: 'Document' }, title: 'Document — Pilotage', loadComponent: () => import('./pages/livrables').then((m) => m.Document) },
       { path: 'cadrage', data: { titre: 'Cadrage' }, title: 'Cadrage — Pilotage', loadComponent: () => import('./pages/cadrage').then((m) => m.Cadrage) },

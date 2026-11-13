@@ -28,6 +28,7 @@ import { SearchableSelectComponent } from '../shared/components/searchable-selec
         <div class="set"><div class="s-lbl"><strong>Titre</strong></div><div class="s-ctl"><div class="form-field"><div class="field-box"><input name="t" [(ngModel)]="e.titre" /></div></div></div></div>
         <div class="set"><div class="s-lbl"><strong>Phase</strong></div><div class="s-ctl"><app-searchable-select name="ph" [(ngModel)]="e.phase" [options]="oPhases()" /></div></div>
         <div class="set"><div class="s-lbl"><strong>Producteur</strong><small>« Humain » : l'agent ne peut pas écrire ce document.</small></div><div class="s-ctl"><app-searchable-select name="pr" [(ngModel)]="e.producteur" [options]="oProducteurs" /></div></div>
+        <div class="set"><div class="s-lbl"><strong>Importance</strong><small>Indispensable : attendu dans tout projet. Facultatif : peut être déclaré « sans objet ».</small></div><div class="s-ctl"><app-searchable-select name="im" [(ngModel)]="e.importance" [options]="oImportance" /></div></div>
         <div class="set"><div class="s-lbl"><strong>Livrable contractuel</strong></div><div class="s-ctl"><label><input type="checkbox" name="l" [(ngModel)]="e.livrable" /> Remis au client</label></div></div>
         <div class="set"><div class="s-lbl"><strong>Signature</strong><small>Un scan signé est exigé pour le statut « Signé ».</small></div><div class="s-ctl"><label><input type="checkbox" name="s" [(ngModel)]="e.signature" /> Exige une signature</label></div></div>
         <div class="set"><div class="s-lbl"><strong>Description</strong></div><div class="s-ctl"><div class="form-field"><div class="field-box textarea-box"><textarea name="d" rows="3" [(ngModel)]="e.description"></textarea></div></div></div></div>
@@ -44,7 +45,7 @@ import { SearchableSelectComponent } from '../shared/components/searchable-selec
         <div class="ph">{{ ph.titre }}</div>
         @for (t of parPhase(ph.code); track t.id) {
           <div class="ligne"><code>{{ t.code }}</code>
-            <div>{{ t.titre }}<span class="etiq">{{ t.producteur }}</span>@if (t.livrable) { <span class="etiq">livrable</span> }@if (t.signature) { <span class="etiq">signature</span> }@if (t.modele_id) { <span class="etiq">modèle</span> }</div>
+            <div>{{ t.titre }}<span class="etiq" [style.fontWeight]="t.importance === 'indispensable' ? 700 : 400">{{ t.importance }}</span><span class="etiq">{{ t.producteur }}</span>@if (t.livrable) { <span class="etiq">livrable</span> }@if (t.signature) { <span class="etiq">signature</span> }@if (t.modele_id) { <span class="etiq">modèle</span> }</div>
             <button mat-stroked-button (click)="editer(t)"><mat-icon>edit</mat-icon>Modifier</button></div>
         }
       }
@@ -56,9 +57,10 @@ export class ParamCatalogue {
   private readonly api = inject(Api);
   private readonly s = inject(Saisie);
   readonly cat = signal<CatalogueDto | null>(null);
-  readonly edition = signal<(Pick<TypeDocument, 'code' | 'titre' | 'phase' | 'producteur' | 'livrable' | 'signature' | 'description' | 'modele_id'>) | null>(null);
+  readonly edition = signal<(Pick<TypeDocument, 'code' | 'titre' | 'phase' | 'producteur' | 'livrable' | 'signature' | 'description' | 'modele_id' | 'importance'>) | null>(null);
   readonly modele = signal<string | null>(null);
   texteModele = '';
+  readonly oImportance = [{ value: 'indispensable', label: 'Indispensable' }, { value: 'facultatif', label: 'Facultatif' }];
   readonly oProducteurs = [{ value: 'agent', label: 'Agent', description: 'Rédigé par l’agent, relu par un humain' }, { value: 'mixte', label: 'Mixte' }, { value: 'humain', label: 'Humain', description: 'Interdit à l’agent' }];
   readonly oPhases = computed(() => (this.cat()?.phases ?? []).map((p) => ({ value: p.code, label: p.titre })));
   readonly codeModele = computed(() => this.cat()?.modeles.find((m) => m.id === this.edition()?.modele_id)?.code ?? '');
@@ -66,7 +68,7 @@ export class ParamCatalogue {
   constructor() { this.eq.charger(); this.charger(); }
   charger() { this.api.invoke(referentielsCatalogue).then((c) => this.cat.set(c)); }
   async editer(t: TypeDocument) {
-    this.edition.set({ code: t.code, titre: t.titre, phase: t.phase, producteur: t.producteur, livrable: t.livrable, signature: t.signature, description: t.description, modele_id: t.modele_id });
+    this.edition.set({ code: t.code, importance: t.importance, titre: t.titre, phase: t.phase, producteur: t.producteur, livrable: t.livrable, signature: t.signature, description: t.description, modele_id: t.modele_id });
     this.modele.set(null);
     const code = this.cat()?.modeles.find((m) => m.id === t.modele_id)?.code;
     if (code) { const m = await this.api.invoke(referentielsModele, { code }); this.texteModele = m.contenu; this.modele.set(m.contenu); }
@@ -75,7 +77,7 @@ export class ParamCatalogue {
   async enregistrer() {
     const e = this.edition()!;
     const ok = await this.s.faire(async () => {
-      await this.api.invoke(catalogueAdminMajType, { code: e.code, body: { titre: e.titre, phase: e.phase, producteur: e.producteur, livrable: e.livrable, signature: e.signature, description: e.description } });
+      await this.api.invoke(catalogueAdminMajType, { code: e.code, body: { titre: e.titre, importance: e.importance, phase: e.phase, producteur: e.producteur, livrable: e.livrable, signature: e.signature, description: e.description } });
       if (this.modele() !== null && this.texteModele !== this.modele()) await this.api.invoke(catalogueAdminModele, { code: this.codeModele(), body: { contenu: this.texteModele } });
     }, `${e.code} enregistré`);
     if (ok) { this.edition.set(null); this.charger(); }

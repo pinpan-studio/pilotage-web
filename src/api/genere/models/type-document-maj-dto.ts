@@ -3,6 +3,7 @@
 
 export interface TypeDocumentMajDto {
   description?: string;
+  importance?: 'indispensable' | 'facultatif';
   livrable?: boolean;
   phase?: string;
   producteur?: 'agent' | 'mixte' | 'humain';

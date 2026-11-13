@@ -1,8 +1,9 @@
+import { SchemasDirective } from '../noyau/schemas';
 import { Component, computed, effect, inject, input, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { Api } from '../../api/genere/api';
-import { exportDiff, fichiersLister, fichiersStatut, gestionEcrireDocument, projetsDocument, projetsDocuments } from '../../api/genere/functions';
+import { exportDiff, fichiersLister, fichiersStatut, generationGenerer, gestionEcrireDocument, projetsDocument, projetsDocuments } from '../../api/genere/functions';
 import { DiffDocumentDto, Fichier } from '../../api/genere/models';
 import { Fichiers } from '../noyau/fichiers';
 import { FormsModule } from '@angular/forms';
@@ -23,7 +24,7 @@ import { ProjetCourant } from './projet';
 /** Livrables : grille de notes du ui-kit (une note par document du projet). */
 @Component({
   selector: 'app-livrables',
-  imports: [MatIconModule, NoteGridComponent, Chargement, ...PIPES],
+  imports: [SchemasDirective, MatIconModule, NoteGridComponent, Chargement, ...PIPES],
   styles: [`.card.plan { padding: var(--space-4); }`],
   template: `
   @if (p.indicateurs(); as m) {
@@ -48,11 +49,12 @@ export class Livrables {
     return { id: d.id, ref: d.code, title: d.titre, tone: ton, badge: { label: this.ref.libelle(d.statut), tone: ton },
       description: [this.ref.phase(d.phase), this.ref.libelle(d.producteur), d.version && `v${d.version}`].filter(Boolean).join(' · '),
       due: d.echeance_effective ?? undefined, done: ['valide', 'signe', 'sans_objet'].includes(d.statut), progress: Math.round(this.poids(d.statut) * 100),
-      assignee: d.responsable || undefined, tags: [d.livrable ? 'Livrable' : '', d.signature ? (d.nb_scans ? 'Signé ✓' : 'À signer') : ''].filter(Boolean),
-      fields: { phase: d.phase, statut: d.statut }, data: d.code };
+      assignee: d.responsable || undefined, tags: [d.importance === 'indispensable' ? 'Indispensable' : 'Facultatif', d.livrable ? 'Livrable client' : '', d.generable ? 'Générable' : '', d.signature ? (d.nb_scans ? 'Signé ✓' : 'À signer') : ''].filter(Boolean),
+      fields: { phase: d.phase, statut: d.statut, importance: d.importance }, data: d.code };
   }));
   readonly filtres = computed<PlanningFilter[]>(() => [
     { key: 'phase', label: 'Phase', allLabel: 'Toutes', options: (this.ref.donnees()?.phases ?? []).map((x) => ({ value: x.code, label: x.libelle })) },
+    { key: 'importance', label: 'Importance', allLabel: 'Toutes', options: [{ value: 'indispensable', label: 'Indispensables' }, { value: 'facultatif', label: 'Facultatifs' }] },
     { key: 'statut', label: 'Statut', allLabel: 'Tous', options: (this.ref.donnees()?.statuts_document ?? []).map((x) => ({ value: x.code, label: x.libelle })) },
   ]);
   constructor() { effect(() => { const c = this.p.code(); if (c) this.api.invoke(projetsDocuments, { code: c }).then((l) => { this.docs.set(l); this.charge.set(true); }); }); }
@@ -62,7 +64,7 @@ export class Livrables {
 /** Contenu d'un livrable — gabarit de documentation du ui-kit (examples/app/docs). */
 @Component({
   selector: 'app-document',
-  imports: [RouterLink, MatIconModule, Statut, Lecteur, Chargement, EmptyStateComponent, FormsModule, MatButtonModule, ...PIPES],
+  imports: [SchemasDirective, RouterLink, MatIconModule, Statut, Lecteur, Chargement, EmptyStateComponent, FormsModule, MatButtonModule, ...PIPES],
   styles: [`.boutons { display: flex; flex-direction: column; gap: 6px; margin: 6px 0 12px; } .boutons button { justify-content: flex-start; }
     .editeur { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); } .editeur textarea { font-family: ui-monospace, monospace; font-size: 13px; min-height: 420px; }
     .diff { white-space: pre-wrap; font: 12px/1.5 ui-monospace, monospace; margin: 0; max-height: 640px; overflow: auto; } .d-ajout { background: color-mix(in srgb, #2e7d32 18%, transparent); display: block; } .d-retrait { background: color-mix(in srgb, #c62828 16%, transparent); text-decoration: line-through; display: block; } .d-commun { color: var(--mat-sys-on-surface-variant); display: block; }
@@ -72,7 +74,7 @@ export class Livrables {
   @if (d(); as d) {
     <app-lecteur [groupes]="arbre()" [courant]="d.code" [titre]="d.titre" [fil]="['Livrables', phase(d.phase), d.code]" [sommaire]="rendu().sommaire" titreArbre="Livrables">
       <ng-container meta>
-        <app-statut [code]="d.statut" />@if (d.version) { <code>v{{ d.version }}</code> }<span>{{ d.producteur | libelle }}</span>
+        <app-statut [code]="d.statut" />@if (d.version) { <code>v{{ d.version }}</code> }<span>{{ d.importance === 'indispensable' ? 'Indispensable' : 'Facultatif' }}</span><span>{{ d.producteur | libelle }}</span>@if (d.livrable) { <span>Livrable client</span> }
         @if (d.echeance_effective) { <span>Échéance {{ d.echeance_effective | dateFr }}</span> }
         @if (d.date_validation) { <span>Validé le {{ d.date_validation | dateFr }}</span> }
         @if (d.signature) { <span>{{ d.nb_scans ? 'Scan signé ✓' : 'Signature attendue' }}</span> }
@@ -81,7 +83,7 @@ export class Livrables {
         <form class="card pane" (ngSubmit)="enregistrer()">
           <div class="editeur">
             <div class="form-field"><div class="field-box textarea-box"><textarea name="c" [(ngModel)]="contenu" (ngModelChange)="edition.set($event)"></textarea></div></div>
-            <div class="apercu prose" [innerHTML]="apercu()"></div>
+            <div class="apercu prose" appSchemas [innerHTML]="apercu()"></div>
           </div>
           <div class="grille-form" style="margin-top: 12px">
             <div class="large"><label>Résumé de la modification</label><div class="form-field"><div class="field-box"><input name="r" [(ngModel)]="resume" placeholder="Mise à jour du chapitre 3" /></div></div></div>
@@ -99,7 +101,7 @@ export class Livrables {
           <pre class="diff">@for (b of df.blocs; track $index) {<span [class]="'d-' + b.type">{{ b.texte }}</span>}</pre>
         </section>
       }
-      @else if (d.version_courante) { <div class="prose" [innerHTML]="rendu().html"></div> }
+      @else if (d.version_courante) { <div class="prose" appSchemas [innerHTML]="rendu().html"></div> }
       @else {
         <app-empty-state icon="draft" title="Aucun contenu" [subtitle]="d.lien_externe ? 'Ce document est conservé hors de Pilotage.' : 'Ce document n’a pas encore été rédigé (l’agent peut le produire avec /document ' + d.code + ').'" />
         @if (d.lien_externe) { <p style="text-align:center"><a [href]="d.lien_externe" target="_blank" rel="noopener">Ouvrir le document externe</a></p> }
@@ -108,11 +110,13 @@ export class Livrables {
         @if (p.peutEcrire()) {
           <span class="text-overline">Actions</span>
           <div class="boutons">
+            @if (d.generable) { <button mat-flat-button color="primary" (click)="generer()" [disabled]="generation()"><mat-icon>auto_awesome</mat-icon>{{ generation() ? 'Génération…' : 'Générer depuis le projet' }}</button> }
             @if (d.producteur !== 'humain') { <button mat-stroked-button (click)="editer()"><mat-icon>edit_note</mat-icon>{{ d.version_courante ? 'Modifier' : 'Rédiger' }}</button> }
+            @if (d.importance === 'facultatif' && d.statut === 'a_produire' && p.estChef()) { <button mat-button (click)="statut('sans_objet')"><mat-icon>do_not_disturb_on</mat-icon>Facultatif : sans objet</button> }
             @if (d.statut === 'en_cours') { <button mat-button (click)="statut('en_revue')"><mat-icon>rate_review</mat-icon>Soumettre en revue</button> }
             @if (p.estChef() && ['en_revue', 'en_cours'].includes(d.statut)) { <button mat-button (click)="statut('valide')"><mat-icon>verified</mat-icon>Valider</button> }
             @if (p.estChef() && d.statut === 'valide') { <button mat-button (click)="statut('signe')"><mat-icon>draw</mat-icon>Marquer signé</button> }
-            @if (p.estChef() && d.statut === 'a_produire') { <button mat-button (click)="statut('sans_objet')"><mat-icon>do_not_disturb_on</mat-icon>Sans objet</button> }
+            @if (d.nb_versions) { <a mat-button [routerLink]="['/projets', p.code(), 'documentation', d.code]"><mat-icon>auto_stories</mat-icon>Voir en lecture</a> }
           </div>
         }
         @if (d.version_courante) {
@@ -152,6 +156,15 @@ export class Document {
   readonly edition = signal<string | null>(null);
   private readonly fichiers = inject(Fichiers);
   readonly diff = signal<DiffDocumentDto | null>(null);
+  readonly generation = signal(false);
+  async generer() {
+    const d = this.d()!;
+    if (d.version_courante && !confirm(`Générer une nouvelle version de ${d.code} à partir des données du projet ? La version actuelle reste dans l’historique.`)) return;
+    this.generation.set(true);
+    const r = await this.s.faire(() => this.api.invoke(generationGenerer, { code: this.p.code(), doc: d.code, body: {} }), `${d.code} généré`);
+    this.generation.set(false);
+    if (r) this.recharger();
+  }
   readonly scans = signal<Fichier[]>([]);
   readonly depot = signal(false);
   exporter(format: 'pdf' | 'docx') {

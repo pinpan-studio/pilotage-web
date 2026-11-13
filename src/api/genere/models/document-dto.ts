@@ -10,7 +10,17 @@ export interface DocumentDto {
    * Échéance effective : échéance propre ou date du jalon qui attend ce document.
    */
   echeance_effective: string | null;
+
+  /**
+   * Le contenu peut être généré à partir des données du projet.
+   */
+  generable: boolean;
   id: string;
+
+  /**
+   * indispensable ou facultatif (catalogue de l'équipe).
+   */
+  importance: string;
   lien_externe: string;
   livrable: boolean;
   nb_scans: number;
