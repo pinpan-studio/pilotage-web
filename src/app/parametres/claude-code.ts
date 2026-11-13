@@ -17,7 +17,7 @@ import { Chargement } from '../noyau/chargement';
 import { CopyFieldComponent } from '../shared/components/fields';
 import { SearchableSelectComponent } from '../shared/components/searchable-select/searchable-select.component';
 
-/** Brancher Claude Code sur le serveur MCP : jetons d'API (création, affichage unique, révocation, renouvellement) et commandes prêtes à copier. */
+/** Brancher les assistants IA (Claude Code, Claude Desktop, Cursor, VS Code, Codex, Gemini CLI, Windsurf) sur le serveur MCP : jetons d'API (création, affichage unique, révocation, renouvellement) et commandes prêtes à copier. */
 @Component({
   selector: 'app-param-claude',
   imports: [FormsModule, MatButtonModule, MatIconModule, MatDatepickerModule, CopyFieldComponent, SearchableSelectComponent, Chargement, ...PIPES],
@@ -26,19 +26,31 @@ import { SearchableSelectComponent } from '../shared/components/searchable-selec
   styles: [`.etapes { margin: 0; padding-left: 20px; font-size: var(--fs-body-sm); line-height: 1.6; li { margin-bottom: 14px; } }
     .cmds { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
     .projets { display: flex; flex-wrap: wrap; gap: 8px; }
+    .bloc-code { position: relative; pre { margin: 0; padding: 14px 16px; border-radius: var(--radius-sm); background: var(--mat-sys-surface-container-high, var(--hover-bg));
+      font: 12.5px/1.5 var(--font-mono, ui-monospace, monospace); overflow-x: auto; white-space: pre; } button { position: absolute; top: 8px; right: 8px; } }
     .jeton-neuf { padding: 16px; border-radius: var(--radius-md); background: var(--success-color-light); margin-bottom: 8px;
       strong { display: flex; align-items: center; gap: 8px; color: var(--success-color-text, var(--success-color)); } p { margin: 6px 0 12px; font-size: 13px; } }`],
   template: `
   <section class="card pane">
-    <header><h2>Claude Code et serveur MCP</h2><p>L'agent IA lit l'état des projets et y écrit (notes de session, statuts, documents) via le serveur MCP « pilotage ».</p></header>
+    <header><h2>Assistants IA et serveur MCP</h2><p>Le serveur MCP « pilotage » (Streamable HTTP, jeton en en-tête) fonctionne avec les assistants les plus utilisés : l'agent lit l'état des projets et y écrit (notes de session, statuts, documents).</p></header>
     <ol class="etapes">
       <li><strong>Créez un jeton d'API</strong> ci-dessous (un par développeur et par poste, limité à ses projets).</li>
       <li><strong>Sur le poste, définissez la variable</strong> <code>PILOTAGE_TOKEN</code> (jamais dans un fichier versionné) :
-        <div class="cmds"><app-copy-field [value]="cmdExport()" label="Terminal (macOS / Linux, ~/.bashrc ou ~/.zshrc)" /><app-copy-field [value]="cmdExportWin()" label="PowerShell (Windows)" /></div></li>
-      <li><strong>Ajoutez le serveur MCP à Claude Code</strong> :
-        <div class="cmds"><app-copy-field [value]="cmdMcp()" label="Commande Claude Code" /></div>
-        <small class="muted">Puis dans Claude Code : « donne-moi l'état du projet », « ajoute une note de session ».</small></li>
-      <li><strong>Recommandé — installez le kit dans chaque dépôt de code</strong> (journal automatique hors ligne, documentaliste, commandes /document, /fin-session…) :
+        <div class="cmds"><app-copy-field [value]="cmdExport()" label="Terminal (macOS / Linux, ~/.bashrc ou ~/.zshrc)" /><app-copy-field [value]="cmdExportWin()" label="PowerShell (Windows) — puis rouvrir le terminal" /></div></li>
+      <li><strong>Branchez votre assistant</strong> :
+        <div class="m3-filter-toggle" role="tablist" aria-label="Assistant" style="margin: 10px 0 12px">
+          @for (c of clients; track c.id) { <button type="button" role="tab" [class.active]="client() === c.id" (click)="client.set(c.id)"><mat-icon>{{ c.icone }}</mat-icon>{{ c.nom }}</button> }
+        </div>
+        @if (clientCourant(); as c) {
+          <p class="muted" style="margin: 0 0 8px">{{ c.aide }}</p>
+          @if (c.fichier) { <p style="margin: 0 0 6px; font-size: 13px">Fichier : <code>{{ c.fichier }}</code></p> }
+          @if (c.config) {
+            <div class="bloc-code"><pre>{{ c.config }}</pre><button mat-stroked-button type="button" (click)="copier(c.config)"><mat-icon>content_copy</mat-icon>Copier</button></div>
+          }
+          @if (c.note) { <p class="muted" style="margin: 8px 0 0; font-size: 12.5px"><mat-icon style="font-size: 15px; width: 15px; height: 15px; vertical-align: -3px">info</mat-icon> {{ c.note }}</p> }
+        }
+        <small class="muted">Puis dans l'assistant : « donne-moi l'état du projet », « ajoute une note de session ».</small></li>
+      <li><strong>Recommandé — installez le kit dans chaque dépôt de code</strong> : configure d'un coup Claude Code (journal automatique hors ligne, documentaliste, commandes), Cursor, VS Code, Gemini CLI, Windsurf et <code>AGENTS.md</code> (consignes lues par Codex, Copilot, Cursor, Gemini…) :
         <div class="cmds"><app-copy-field [value]="cmdKit()" label="Depuis le dépôt de code (nécessite une copie de pilotage-api)" /></div></li>
     </ol>
   </section>
@@ -99,8 +111,39 @@ export class ParamClaudeCode {
   private readonly jetonAffiche = computed(() => this.neuf()?.jeton ?? 'plt_…');
   readonly cmdExport = computed(() => `export PILOTAGE_TOKEN=${this.jetonAffiche()}`);
   readonly cmdExportWin = computed(() => `setx PILOTAGE_TOKEN "${this.jetonAffiche()}"`);
-  readonly cmdMcp = computed(() => `claude mcp add --transport http pilotage ${this.url}/mcp --header "Authorization: Bearer \${PILOTAGE_TOKEN}"`);
-  readonly cmdKit = computed(() => `node ../pilotage-api/claude-kit/installer.mjs --repo . --api ${this.url} --projet ${this.nav.projetCourant() ?? this.nav.projets()?.[0]?.code ?? '<code-projet>'} --depot backend`);
+  readonly client = signal('claude-code');
+  readonly clients: { id: string; nom: string; icone: string }[] = [
+    { id: 'claude-code', nom: 'Claude Code', icone: 'terminal' }, { id: 'claude-desktop', nom: 'Claude Desktop', icone: 'desktop_windows' },
+    { id: 'cursor', nom: 'Cursor', icone: 'ads_click' }, { id: 'vscode', nom: 'VS Code · Copilot', icone: 'code' },
+    { id: 'codex', nom: 'Codex (OpenAI)', icone: 'smart_toy' }, { id: 'gemini', nom: 'Gemini CLI', icone: 'auto_awesome' },
+    { id: 'windsurf', nom: 'Windsurf', icone: 'air' }, { id: 'web', nom: 'ChatGPT · claude.ai', icone: 'public' },
+  ];
+  readonly clientCourant = computed(() => {
+    const u = `${this.url}/mcp`; const j = this.jetonAffiche();
+    const json = (o: unknown) => JSON.stringify(o, null, 2);
+    switch (this.client()) {
+      case 'claude-code': return { aide: 'Une commande suffit (le jeton est lu dans PILOTAGE_TOKEN au lancement).', fichier: '',
+        config: `claude mcp add --transport http pilotage ${u} --header "Authorization: Bearer \${PILOTAGE_TOKEN}"`, note: 'Ajoutez « --scope user » pour l’activer dans tous vos dépôts.' };
+      case 'claude-desktop': return { aide: 'Claude Desktop passe par la passerelle mcp-remote (Node.js requis) : Réglages → Développeur → Modifier la configuration.', fichier: 'claude_desktop_config.json',
+        config: json({ mcpServers: { pilotage: { command: 'npx', args: ['-y', 'mcp-remote', u, '--header', 'Authorization:${PILOTAGE_AUTH}'], env: { PILOTAGE_AUTH: `Bearer ${j}` } } } }),
+        note: 'Ce fichier est local à votre poste : le jeton y est écrit, ne le partagez pas. Redémarrez Claude Desktop ensuite.' };
+      case 'cursor': return { aide: 'Paramètres de Cursor → MCP, ou directement le fichier ci-dessous (global) ; le kit écrit aussi .cursor/mcp.json dans chaque dépôt.', fichier: '~/.cursor/mcp.json',
+        config: json({ mcpServers: { pilotage: { url: u, headers: { Authorization: 'Bearer ${env:PILOTAGE_TOKEN}' } } } }), note: '' };
+      case 'vscode': return { aide: 'Mode agent de GitHub Copilot (VS Code 1.99+). VS Code demande le jeton au premier démarrage du serveur et le conserve de façon chiffrée.', fichier: '.vscode/mcp.json',
+        config: json({ servers: { pilotage: { type: 'http', url: u, headers: { Authorization: 'Bearer ${input:pilotage-token}' } } }, inputs: [{ type: 'promptString', id: 'pilotage-token', description: "Jeton d'API Pilotage", password: true }] }), note: '' };
+      case 'codex': return { aide: 'Codex CLI / extension Codex (OpenAI). Ajoutez la section au fichier de configuration ; le jeton est lu dans PILOTAGE_TOKEN.', fichier: '~/.codex/config.toml',
+        config: `[mcp_servers.pilotage]\nurl = "${u}"\nbearer_token_env_var = "PILOTAGE_TOKEN"`, note: 'Les consignes du projet sont lues dans AGENTS.md (écrit par le kit). Vérifiez avec « codex mcp list ».' };
+      case 'gemini': return { aide: 'Gemini CLI (Google) : une commande, ou le fichier de réglages (global ou .gemini/settings.json du dépôt, écrit par le kit).', fichier: '~/.gemini/settings.json',
+        config: json({ mcpServers: { pilotage: { httpUrl: u, headers: { Authorization: 'Bearer $PILOTAGE_TOKEN' }, timeout: 30000 } } }),
+        note: `Ou : gemini mcp add --transport http pilotage ${u} --header "Authorization: Bearer $PILOTAGE_TOKEN"` };
+      case 'windsurf': return { aide: 'Windsurf (Codeium) : Cascade → MCP → « View raw config ».', fichier: '~/.codeium/windsurf/mcp_config.json',
+        config: json({ mcpServers: { pilotage: { serverUrl: u, headers: { Authorization: 'Bearer ${env:PILOTAGE_TOKEN}' } } } }), note: '' };
+      default: return { aide: "ChatGPT (connecteurs, mode développeur) et claude.ai (connecteurs personnalisés) exigent une authentification OAuth : elle n'est pas encore disponible sur le serveur Pilotage (prévue en phase 3).", fichier: '',
+        config: '', note: 'En attendant, utilisez un assistant de bureau ou de terminal (Claude Code, Claude Desktop, Cursor, Codex, Gemini CLI…).' };
+    }
+  });
+  copier(texte: string) { navigator.clipboard?.writeText(texte).then(() => this.snack.open('Copié', undefined, { duration: 1500 })).catch(() => undefined); }
+  readonly cmdKit = computed(() => `node ../pilotage-api/claude-kit/installer.mjs --repo . --api ${this.url} --projet ${this.nav.projetCourant() ?? this.nav.projets()?.[0]?.code ?? '<code-projet>'} --depot backend --clients tous`);
   readonly optionsMembres = computed(() => this.membres().filter((m) => m.actif && m.role !== 'client_lecteur').map((m) => ({ value: m.id, label: m.nom, description: m.email, icon: 'person' })));
 
   constructor() {

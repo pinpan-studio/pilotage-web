@@ -24,6 +24,6 @@ export class Parametres {
     { lien: 'securite', libelle: 'Sécurité', icone: 'shield' },
     { lien: 'equipe', libelle: 'Équipe et rôles', icone: 'group' },
     { lien: 'equipes', libelle: 'Mes équipes', icone: 'workspaces' },
-    { lien: 'claude-code', libelle: 'Claude Code (MCP)', icone: 'smart_toy' },
+    { lien: 'claude-code', libelle: 'Assistants IA (MCP)', icone: 'smart_toy' },
   ];
 }

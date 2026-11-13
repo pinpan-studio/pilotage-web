@@ -133,7 +133,7 @@ export class Coquille {
     g.push({ label: 'Équipe', icon: 'groups', items: [
       { label: 'Membres et rôles', icon: 'group', path: '/parametres/equipe' },
       { label: 'Mes équipes', icon: 'workspaces', path: '/parametres/equipes' },
-      { label: 'Claude Code (MCP)', icon: 'smart_toy', path: '/parametres/claude-code' },
+      { label: 'Assistants IA (MCP)', icon: 'smart_toy', path: '/parametres/claude-code' },
     ] });
     g.push({ label: 'Compte', icon: 'manage_accounts', items: [
       { label: 'Mon compte', icon: 'person', path: '/parametres/compte' },
@@ -161,7 +161,7 @@ export class Coquille {
         ...(this.nav.projets() ?? []).flatMap((p) => ONGLETS_PROJET.map((o) => ({ id: `nav-${p.code}-${o.seg}`, label: `${p.nom} — ${o.label}`, group: 'Projets', icon: o.icon, route: `/projets/${p.code}/${o.seg}` }))),
         { id: 'nav-compte', label: 'Mon compte', group: 'Compte', icon: 'person', route: '/parametres/compte' },
         { id: 'nav-equipe', label: 'Membres et rôles de l’équipe', group: 'Équipe', icon: 'group', route: '/parametres/equipe' },
-        { id: 'nav-claude', label: 'Brancher Claude Code (MCP)', group: 'Équipe', icon: 'smart_toy', route: '/parametres/claude-code' },
+        { id: 'nav-claude', label: 'Brancher un assistant IA (MCP : Claude, Cursor, Codex, Gemini…)', group: 'Équipe', icon: 'smart_toy', route: '/parametres/claude-code' },
         { id: 'nav-nouveau-projet', label: 'Nouveau projet', group: 'Actions', icon: 'create_new_folder', route: '/projets-nouveau' },
         ...this.eq.equipes().filter((e) => !e.courante).map((e) => ({ id: `eq-${e.id}`, label: `Passer à l’équipe ${e.nom}`, group: 'Équipe', icon: 'workspaces', action: () => this.eq.changer(e.id) })),
         { id: 'nav-securite', label: 'Sécurité et sessions', group: 'Compte', icon: 'shield', route: '/parametres/securite' },
