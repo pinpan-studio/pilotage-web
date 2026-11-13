@@ -4,8 +4,9 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { Api } from '../../api/genere/api';
-import { gestionCreerCasTest, gestionResultats, projetsCampagne, projetsCampagnes, projetsCasTest, projetsFonctionnalites } from '../../api/genere/functions';
-import { CampagneDetailDto, CasTest, FonctionnaliteDto } from '../../api/genere/models';
+import { gestionCreerCasTest, gestionResultats, projetsCampagne, projetsCampagnes, projetsCasTest, projetsFonctionnalites, projetsTracabilite } from '../../api/genere/functions';
+import { RouterLink } from '@angular/router';
+import { CampagneDetailDto, CasTest, FonctionnaliteDto, TracabiliteDto } from '../../api/genere/models';
 import { versIso } from '../noyau/dates';
 import { PIPES } from '../noyau/pipes';
 import { Statut } from '../noyau/statut';
@@ -20,21 +21,47 @@ type Res = 'ok' | 'ko' | 'reserve' | 'non_teste';
 /** Recette : cahier de recette (cas de test par fonctionnalité) et campagnes avec saisie des résultats en grille. */
 @Component({
   selector: 'app-recette',
-  imports: [FormsModule, MatButtonModule, MatIconModule, MatDatepickerModule, Statut, Chargement, SearchableSelectComponent, EmptyStateComponent, ...PIPES],
+  styles: [`.tuiles-trace { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: var(--space-3); margin-bottom: var(--space-4); }
+    .tuile { display: flex; flex-direction: column; gap: 4px; margin: 0 !important; } .tuile strong { font-size: 26px; }
+    .t-non_couvertes, .t-ko { color: var(--mat-sys-error); } .t-recettees { color: #2e7d32; }
+    .etat { font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+    .e-non_couverte, .e-ko { background: var(--mat-sys-error-container); color: var(--mat-sys-on-error-container); }
+    .puce { display: inline-flex; align-items: center; gap: 4px; margin: 0 8px 4px 0; white-space: nowrap; }
+    .e-recettee { background: color-mix(in srgb, #2e7d32 18%, transparent); } .e-sans_test, .e-en_recette { background: var(--mat-sys-surface-container-high); }`],
+  imports: [RouterLink, FormsModule, MatButtonModule, MatIconModule, MatDatepickerModule, Statut, Chargement, SearchableSelectComponent, EmptyStateComponent, ...PIPES],
   template: `
   <div class="tete">
     <div class="m3-filter-toggle" role="tablist" aria-label="Vue">
       <button type="button" role="tab" [class.active]="vue() === 'cahier'" (click)="vue.set('cahier')"><mat-icon>checklist</mat-icon>Cahier de recette</button>
       <button type="button" role="tab" [class.active]="vue() === 'campagnes'" (click)="vue.set('campagnes')"><mat-icon>playlist_add_check</mat-icon>Campagnes</button>
+      <button type="button" role="tab" [class.active]="vue() === 'tracabilite'" (click)="vue.set('tracabilite')"><mat-icon>account_tree</mat-icon>Traçabilité</button>
     </div>
     <span class="esp"></span>
-    @if (p.peutEcrire()) {
+    @if (p.peutEcrire() && vue() !== 'tracabilite') {
       @if (vue() === 'cahier') { <button mat-flat-button color="primary" (click)="formCas.set(!formCas())"><mat-icon>add</mat-icon>Nouveau cas de test</button> }
       @else { <button mat-flat-button color="primary" (click)="ouvrirCampagne()" [disabled]="!cas().length"><mat-icon>add</mat-icon>Saisir une campagne</button> }
     }
   </div>
 
   @if (!charge()) { <app-chargement forme="table" [lignes]="8" /> }
+  @else if (vue() === 'tracabilite') {
+    @if (trace(); as t) {
+      <div class="tuiles-trace">
+        @for (k of tuiles; track k.cle) { <div class="card pane tuile"><span class="mini">{{ k.libelle }}</span><strong [class]="'t-' + k.cle">{{ $any(t.synthese)[k.cle] }}</strong></div> }
+      </div>
+      <section class="card pane"><div class="defile"><table class="tab"><thead><tr><th>Exigence</th><th>Priorité</th><th>Fonctionnalités</th><th>Tests</th><th>Retours</th><th>État</th></tr></thead><tbody>
+        @for (e of t.exigences; track e.ref) {
+          <tr><td><code>{{ e.ref }}</code> {{ e.titre }}@if (e.section_tdr) { <div class="mini">TDR {{ e.section_tdr.startsWith('§') ? '' : '§ ' }}{{ e.section_tdr }}</div> }</td><td>{{ e.priorite.toUpperCase() }}</td>
+            <td>@for (f of e.fonctionnalites; track f.ref) { <div><a [routerLink]="['/projets', p.code(), 'fonctionnalites', f.ref]"><code>{{ f.ref }}</code></a> {{ f.titre }} <app-statut [code]="f.statut" /></div> } @empty { <span class="err-text">Aucune</span> }</td>
+            <td>@for (f of e.fonctionnalites; track f.ref) { @for (x of f.tests; track x.ref) { <span class="puce"><code>{{ x.ref }}</code> <app-statut [code]="x.resultat" /></span> } } </td>
+            <td>@for (f of e.fonctionnalites; track f.ref) { @for (r of f.retours; track r.ref) { <span class="puce"><code>{{ r.ref }}</code>&nbsp;<span class="mini">{{ r.statut | libelle }}</span></span> } }</td>
+            <td><span [class]="'etat e-' + e.etat">{{ etats[e.etat] }}</span></td></tr>
+        } @empty { <tr><td colspan="6" class="mini">Aucune exigence saisie (TDR). Le chef de projet peut les ajouter.</td></tr> }
+      </tbody></table></div></section>
+      @if (t.hors_tdr.length) { <section class="card pane"><h3 style="margin: 0 0 8px">Fonctionnalités sans exigence du TDR</h3>
+        @for (f of t.hors_tdr; track f.ref) { <div><a [routerLink]="['/projets', p.code(), 'fonctionnalites', f.ref]"><code>{{ f.ref }}</code></a> {{ f.titre }} <app-statut [code]="f.statut" /> <span class="mini">{{ f.tests.length }} test(s)</span></div> }</section> }
+    } @else { <app-chargement forme="table" [lignes]="6" /> }
+  }
   @else if (vue() === 'cahier') {
     @if (formCas()) {
       <form class="card pane" (ngSubmit)="creerCas()">
@@ -98,7 +125,11 @@ export class Recette {
   readonly p = inject(ProjetCourant);
   private readonly api = inject(Api);
   private readonly s = inject(Saisie);
-  readonly vue = signal<'cahier' | 'campagnes'>('cahier');
+  readonly vue = signal<'cahier' | 'campagnes' | 'tracabilite'>('cahier');
+  readonly trace = signal<TracabiliteDto | null>(null);
+  readonly tuiles = [{ cle: 'total', libelle: 'Exigences' }, { cle: 'recettees', libelle: 'Recettées' }, { cle: 'en_recette', libelle: 'En recette' }, { cle: 'ko', libelle: 'Tests KO' },
+    { cle: 'sans_test', libelle: 'Sans test' }, { cle: 'non_couvertes', libelle: 'Non couvertes' }];
+  readonly etats: Record<string, string> = { non_couverte: 'Non couverte', sans_test: 'Sans test', en_recette: 'En recette', ko: 'KO', recettee: 'Recettée' };
   readonly charge = signal(false);
   readonly enCours = signal(false);
   readonly cas = signal<CasTest[]>([]);
@@ -140,6 +171,7 @@ export class Recette {
     const code = this.p.code();
     const [cas, foncs, camps] = await Promise.all([this.api.invoke(projetsCasTest, { code }), this.api.invoke(projetsFonctionnalites, { code }), this.api.invoke(projetsCampagnes, { code })]);
     this.cas.set(cas); this.foncs.set(foncs);
+    this.api.invoke(projetsTracabilite, { code }).then((t) => this.trace.set(t)).catch(() => undefined);
     this.campagnes.set(await Promise.all(camps.map((c) => this.api.invoke(projetsCampagne, { code, ref: c.ref }))));
     this.charge.set(true);
   }

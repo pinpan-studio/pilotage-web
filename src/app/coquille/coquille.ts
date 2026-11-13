@@ -1,4 +1,7 @@
 import { Component, DestroyRef, computed, effect, inject, signal } from '@angular/core';
+import { Api } from '../../api/genere/api';
+import { notificationsLister } from '../../api/genere/functions';
+import { NotificationDto } from '../../api/genere/models';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { BreakpointObserver } from '@angular/cdk/layout';
 import { MatSidenavModule } from '@angular/material/sidenav';
@@ -89,7 +92,7 @@ interface Groupe { label: string; icon: string; items: Entree[]; collapsible?: b
         <button type="button" class="palette-btn" (click)="palette.open()" aria-label="Rechercher (⌘K)"><mat-icon>search</mat-icon><span class="pb-label">Rechercher…</span><app-kbd keys="mod+k" class="pb-kbd" /></button>
         <button mat-icon-button class="hide-sm" (click)="theme.toggle()" [matTooltip]="theme.mode() === 'light' ? 'Mode sombre' : 'Mode clair'"><mat-icon>{{ theme.mode() === 'light' ? 'dark_mode' : 'light_mode' }}</mat-icon></button>
         <app-theme-picker class="hide-sm" />
-        <app-notification-center [notifications]="notifications()" [manage]="false" [settings]="false" />
+        <app-notification-center [notifications]="notifications()" [manage]="false" [settings]="false" footer="Actualiser" (viewAll)="chargerNotifications()" (open)="ouvrirNotification($event)" (readChange)="marquer($event)" />
         <button type="button" class="avatar-btn" [matMenuTriggerFor]="moi" aria-label="Mon compte">
           @if (auth.utilisateur()?.photo_url) { <img class="avatar" [src]="auth.utilisateur()!.photo_url" alt="" referrerpolicy="no-referrer" style="object-fit: cover" /> } @else { <span class="avatar">{{ initiales() }}</span> }
         </button>
@@ -141,16 +144,39 @@ export class Coquille {
     ] });
     return g;
   });
-  /** Alertes hautes du portefeuille dans le centre de notifications. */
-  readonly notifications = computed<AppNotification[]>(() => (this.nav.projets() ?? []).filter((p) => p.nb_alertes.haute).map((p) => ({
-    id: p.id, title: p.nom, message: `${p.nb_alertes.haute} alerte(s) haute(s) · ${p.nb_retours_ouverts} retour(s) client ouvert(s)`,
-    at: new Date(p.derniere_activite ?? Date.now()), icon: 'warning', tone: 'error', category: 'Alertes' })));
+  /** « À traiter » (API, selon le rôle sur chaque projet) + alertes hautes du portefeuille. L'état « lu » est mémorisé par navigateur. */
+  private readonly api = inject(Api);
+  private readonly aTraiter = signal<NotificationDto[]>([]);
+  private readonly lues = signal<Set<string>>(new Set(JSON.parse((() => { try { return localStorage.getItem('pilotage.notifs.lues') ?? '[]'; } catch { return '[]'; } })())));
+  private static readonly ICONES: Record<string, [string, string]> = { document_en_revue: ['rate_review', 'info'], changement_a_decider: ['change_circle', 'warning'], fonctionnalite_a_valider: ['verified', 'success'],
+    retour_nouveau: ['forum', 'primary'], jalon_proche: ['flag', 'warning'], action_en_retard: ['schedule', 'error'] };
+  readonly notifications = computed<AppNotification[]>(() => [
+    ...this.aTraiter().map((n) => ({ id: n.id, title: n.titre, message: `${n.projet_nom} — ${n.detail}`, at: new Date(n.date ?? Date.now()), read: this.lues().has(n.id),
+      icon: Coquille.ICONES[n.type]?.[0] ?? 'notifications', tone: n.priorite === 'haute' ? 'error' : Coquille.ICONES[n.type]?.[1] ?? 'primary', category: 'À traiter' })),
+    ...(this.nav.projets() ?? []).filter((p) => p.nb_alertes.haute).map((p) => ({
+      id: 'alerte:' + p.id + ':' + p.nb_alertes.haute, title: p.nom, message: `${p.nb_alertes.haute} alerte(s) haute(s) · ${p.nb_retours_ouverts} retour(s) client ouvert(s)`,
+      at: new Date(p.derniere_activite ?? Date.now()), read: this.lues().has('alerte:' + p.id + ':' + p.nb_alertes.haute), icon: 'warning', tone: 'error', category: 'Alertes' })),
+  ]);
+  chargerNotifications() { this.api.invoke(notificationsLister).then((l) => this.aTraiter.set(l)).catch(() => undefined); }
+  marquer(e: { ids: string[]; read: boolean }) {
+    const s = new Set(this.lues()); e.ids.forEach((id) => (e.read ? s.add(id) : s.delete(id))); this.lues.set(s);
+    try { localStorage.setItem('pilotage.notifs.lues', JSON.stringify([...s].slice(-500))); } catch { /* stockage indisponible */ }
+  }
+  ouvrirNotification(n: AppNotification) {
+    this.marquer({ ids: [n.id], read: true });
+    const cible = this.aTraiter().find((x) => x.id === n.id);
+    if (cible) this.router.navigateByUrl(cible.lien);
+    else if (n.id.startsWith('alerte:')) { const p = (this.nav.projets() ?? []).find((x) => n.id.startsWith('alerte:' + x.id)); if (p) this.router.navigate(['/projets', p.code, 'synthese']); }
+  }
   readonly initiales = computed(() => (this.auth.utilisateur()?.nom ?? '?').split(/\s+/).filter(Boolean).map((n) => n[0]).join('').slice(0, 2).toUpperCase());
 
   constructor() {
     inject(BreakpointObserver).observe('(max-width: 959.98px)').subscribe((r) => this.mobile.set(r.matches));
     this.nav.chargerProjets();
     this.eq.charger();
+    this.chargerNotifications();
+    const minuteur = setInterval(() => this.chargerNotifications(), 120_000);
+    inject(DestroyRef).onDestroy(() => clearInterval(minuteur));
     this.router.events.pipe(filter((e) => e instanceof NavigationEnd)).subscribe(() => this.majTitre());
     this.majTitre();
     let desinscrire = () => {};

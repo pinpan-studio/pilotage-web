@@ -34,7 +34,7 @@ const opts = (l: [string, string][], icon?: string) => l.map(([value, label]) =>
       @for (o of vues; track o.id) { <button type="button" role="tab" [class.active]="vue() === o.id" (click)="changer(o.id)"><mat-icon>{{ o.icone }}</mat-icon>{{ o.nom }}<span class="mini">&nbsp;{{ compte(o.id) }}</span></button> }
     </div>
     <span class="esp"></span>
-    @if (p.peutEcrire()) { <button mat-flat-button color="primary" (click)="form.set(!form())"><mat-icon>add</mat-icon>{{ libelleAjout() }}</button> }
+    @if (p.peutEcrire() || vue() === 'retours') { <button mat-flat-button color="primary" (click)="form.set(!form())"><mat-icon>add</mat-icon>{{ p.peutEcrire() ? libelleAjout() : 'Signaler un retour' }}</button> }
   </div>
 
   @if (form()) {

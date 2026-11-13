@@ -2,7 +2,9 @@ import { Component, computed, effect, inject, input, signal } from '@angular/cor
 import { Router, RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { Api } from '../../api/genere/api';
-import { fichiersStatut, gestionEcrireDocument, projetsDocument, projetsDocuments } from '../../api/genere/functions';
+import { exportDiff, fichiersLister, fichiersStatut, gestionEcrireDocument, projetsDocument, projetsDocuments } from '../../api/genere/functions';
+import { DiffDocumentDto, Fichier } from '../../api/genere/models';
+import { Fichiers } from '../noyau/fichiers';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { Saisie } from '../noyau/saisie';
@@ -63,6 +65,7 @@ export class Livrables {
   imports: [RouterLink, MatIconModule, Statut, Lecteur, Chargement, EmptyStateComponent, FormsModule, MatButtonModule, ...PIPES],
   styles: [`.boutons { display: flex; flex-direction: column; gap: 6px; margin: 6px 0 12px; } .boutons button { justify-content: flex-start; }
     .editeur { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); } .editeur textarea { font-family: ui-monospace, monospace; font-size: 13px; min-height: 420px; }
+    .diff { white-space: pre-wrap; font: 12px/1.5 ui-monospace, monospace; margin: 0; max-height: 640px; overflow: auto; } .d-ajout { background: color-mix(in srgb, #2e7d32 18%, transparent); display: block; } .d-retrait { background: color-mix(in srgb, #c62828 16%, transparent); text-decoration: line-through; display: block; } .d-commun { color: var(--mat-sys-on-surface-variant); display: block; }
     .apercu { border: 1px solid var(--mat-sys-outline-variant); border-radius: 12px; padding: var(--space-3); overflow: auto; max-height: 520px; }
     @media (max-width: 900px) { .editeur { grid-template-columns: 1fr; } }`],
   template: `
@@ -89,6 +92,13 @@ export class Livrables {
           <p class="mini">Chaque enregistrement crée une nouvelle version ; un document validé ou signé repasse en revue.</p>
         </form>
       }
+      @else if (diff(); as df) {
+        <section class="card pane">
+          <div class="tete" style="margin-bottom: 8px"><strong>Comparaison v{{ df.de }} → v{{ df.a }}</strong><span class="mini">+{{ df.ajouts }} ligne(s) · −{{ df.retraits }} ligne(s)</span><span class="esp"></span>
+            <button mat-button (click)="diff.set(null)"><mat-icon>close</mat-icon>Fermer</button></div>
+          <pre class="diff">@for (b of df.blocs; track $index) {<span [class]="'d-' + b.type">{{ b.texte }}</span>}</pre>
+        </section>
+      }
       @else if (d.version_courante) { <div class="prose" [innerHTML]="rendu().html"></div> }
       @else {
         <app-empty-state icon="draft" title="Aucun contenu" [subtitle]="d.lien_externe ? 'Ce document est conservé hors de Pilotage.' : 'Ce document n’a pas encore été rédigé (l’agent peut le produire avec /document ' + d.code + ').'" />
@@ -104,6 +114,25 @@ export class Livrables {
             @if (p.estChef() && d.statut === 'valide') { <button mat-button (click)="statut('signe')"><mat-icon>draw</mat-icon>Marquer signé</button> }
             @if (p.estChef() && d.statut === 'a_produire') { <button mat-button (click)="statut('sans_objet')"><mat-icon>do_not_disturb_on</mat-icon>Sans objet</button> }
           </div>
+        }
+        @if (d.version_courante) {
+          <span class="text-overline">Exporter</span>
+          <div class="boutons">
+            <button mat-stroked-button (click)="exporter('pdf')"><mat-icon>picture_as_pdf</mat-icon>PDF</button>
+            <button mat-stroked-button (click)="exporter('docx')"><mat-icon>description</mat-icon>Word (.docx)</button>
+            @if (d.versions.length > 1) { <button mat-button (click)="comparer()"><mat-icon>difference</mat-icon>Comparer à la version précédente</button> }
+          </div>
+        }
+        @if (d.signature || scans().length) {
+          <span class="text-overline">Scan signé</span>
+          <div class="bloc-droit">
+            @for (s of scans(); track s.id) { <a href="javascript:void(0)" (click)="telechargerScan(s)"><mat-icon>verified</mat-icon>{{ s.nom }} · {{ s.cree_le | dateFr }}</a> }
+            @empty { <span class="mini">Aucun scan déposé.</span> }
+          </div>
+          @if (p.peutEcrire()) {
+            <input #scan type="file" accept="application/pdf,image/*" hidden (change)="deposerScan(scan)" />
+            <div class="boutons"><button mat-button (click)="scan.click()" [disabled]="depot()"><mat-icon>upload_file</mat-icon>{{ depot() ? 'Envoi…' : 'Déposer le scan signé' }}</button></div>
+          }
         }
         <span class="text-overline">Versions</span>
         <div class="bloc-droit">
@@ -121,10 +150,32 @@ export class Document {
   readonly p = inject(ProjetCourant);
   private readonly s = inject(Saisie);
   readonly edition = signal<string | null>(null);
+  private readonly fichiers = inject(Fichiers);
+  readonly diff = signal<DiffDocumentDto | null>(null);
+  readonly scans = signal<Fichier[]>([]);
+  readonly depot = signal(false);
+  exporter(format: 'pdf' | 'docx') {
+    const d = this.d()!; const v = this.version();
+    this.fichiers.telecharger(`/projets/${this.p.code()}/documents/${d.code}/export?format=${format}${v ? '&version=' + encodeURIComponent(v) : ''}`, `${d.code}.${format}`).catch((e) => this.s.erreur(e));
+  }
+  async comparer() {
+    try { this.diff.set(await this.api.invoke(exportDiff, { code: this.p.code(), doc: this.doc(), a: this.version() || undefined })); } catch (e) { this.s.erreur(e); }
+  }
+  chargerScans() {
+    const id = this.d()?.id; if (!id) return;
+    this.api.invoke(fichiersLister, { code: this.p.code() }).then((l) => this.scans.set(l.filter((f) => f.document_id === id && f.categorie === 'scan_signe'))).catch(() => this.scans.set([]));
+  }
+  telechargerScan(f: Fichier) { this.fichiers.telecharger(`/projets/${this.p.code()}/fichiers/${f.id}/contenu`, f.nom).catch((e) => this.s.erreur(e)); }
+  async deposerScan(input: HTMLInputElement) {
+    const f = input.files?.[0]; input.value = ''; if (!f) return;
+    this.depot.set(true);
+    if (await this.s.faire(() => this.fichiers.deposer(this.p.code(), f, 'scan_signe', this.doc()), 'Scan signé déposé')) this.recharger();
+    this.depot.set(false);
+  }
   contenu = ''; resume = '';
   readonly apercu = computed(() => marked.parse(this.edition() ?? '', { async: false }) as string);
   editer() { this.contenu = this.d()?.version_courante?.contenu ?? ''; this.resume = ''; this.edition.set(this.contenu); }
-  private recharger() { const c = this.p.code(); this.api.invoke(projetsDocument, { code: c, doc: this.doc() }).then((x) => this.d.set(x)); this.api.invoke(projetsDocuments, { code: c }).then((l) => this.docs.set(l)); this.p.rafraichir(); }
+  private recharger() { const c = this.p.code(); this.api.invoke(projetsDocument, { code: c, doc: this.doc() }).then((x) => { this.d.set(x); this.chargerScans(); }); this.api.invoke(projetsDocuments, { code: c }).then((l) => this.docs.set(l)); this.p.rafraichir(); }
   async enregistrer(statut: 'en_cours' | 'en_revue' = 'en_revue') {
     if (await this.s.faire(() => this.api.invoke(gestionEcrireDocument, { code: this.p.code(), doc: this.doc(), body: { contenu_md: this.contenu, resume_modif: this.resume.trim(), statut } }), 'Nouvelle version enregistrée')) { this.edition.set(null); this.recharger(); }
   }
@@ -145,6 +196,6 @@ export class Document {
   phase = (c: string) => this.ref.phase(c);
   constructor() {
     effect(() => { const c = this.p.code(); if (c) this.api.invoke(projetsDocuments, { code: c }).then((l) => this.docs.set(l)); });
-    effect(() => { const c = this.p.code(), doc = this.doc(), v = this.version(); if (c && doc) this.api.invoke(projetsDocument, { code: c, doc, version: v }).then((x) => this.d.set(x)); });
+    effect(() => { const c = this.p.code(), doc = this.doc(), v = this.version(); this.diff.set(null); if (c && doc) this.api.invoke(projetsDocument, { code: c, doc, version: v }).then((x) => { this.d.set(x); this.chargerScans(); }); });
   }
 }

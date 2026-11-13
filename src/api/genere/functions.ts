@@ -33,6 +33,14 @@ export type { CompteRevoquer$Params as CompteRevoquer$Params } from './fn/compte
 export { compteRevoquer as compteRevoquer } from './fn/compte/compte-revoquer';
 export type { CompteRevoquerAutres$Params as CompteRevoquerAutres$Params } from './fn/compte/compte-revoquer-autres';
 export { compteRevoquerAutres as compteRevoquerAutres } from './fn/compte/compte-revoquer-autres';
+export type { ExportExporter$Pdf$Params as ExportExporter$Pdf$Params } from './fn/livrables/export-exporter-pdf';
+export { exportExporter$Pdf as exportExporter$Pdf } from './fn/livrables/export-exporter-pdf';
+export type { ExportExporter$VndOpenxmlformatsOfficedocumentWordprocessingmlDocument$Params as ExportExporter$VndOpenxmlformatsOfficedocumentWordprocessingmlDocument$Params } from './fn/livrables/export-exporter-vnd-openxmlformats-officedocument-wordprocessingml-document';
+export { exportExporter$VndOpenxmlformatsOfficedocumentWordprocessingmlDocument as exportExporter$VndOpenxmlformatsOfficedocumentWordprocessingmlDocument } from './fn/livrables/export-exporter-vnd-openxmlformats-officedocument-wordprocessingml-document';
+export type { ExportDiff$Params as ExportDiff$Params } from './fn/livrables/export-diff';
+export { exportDiff as exportDiff } from './fn/livrables/export-diff';
+export type { NotificationsLister$Params as NotificationsLister$Params } from './fn/notifications/notifications-lister';
+export { notificationsLister as notificationsLister } from './fn/notifications/notifications-lister';
 export type { ReferentielsReferentiels$Params as ReferentielsReferentiels$Params } from './fn/referentiels/referentiels-referentiels';
 export { referentielsReferentiels as referentielsReferentiels } from './fn/referentiels/referentiels-referentiels';
 export type { ReferentielsCatalogue$Params as ReferentielsCatalogue$Params } from './fn/referentiels/referentiels-catalogue';
@@ -55,6 +63,8 @@ export type { ProjetsFonctionnalites$Params as ProjetsFonctionnalites$Params } f
 export { projetsFonctionnalites as projetsFonctionnalites } from './fn/projets/projets-fonctionnalites';
 export type { ProjetsFonctionnalite$Params as ProjetsFonctionnalite$Params } from './fn/projets/projets-fonctionnalite';
 export { projetsFonctionnalite as projetsFonctionnalite } from './fn/projets/projets-fonctionnalite';
+export type { ProjetsTracabilite$Params as ProjetsTracabilite$Params } from './fn/projets/projets-tracabilite';
+export { projetsTracabilite as projetsTracabilite } from './fn/projets/projets-tracabilite';
 export type { ProjetsExigences$Params as ProjetsExigences$Params } from './fn/projets/projets-exigences';
 export { projetsExigences as projetsExigences } from './fn/projets/projets-exigences';
 export type { ProjetsCasTest$Params as ProjetsCasTest$Params } from './fn/projets/projets-cas-test';
