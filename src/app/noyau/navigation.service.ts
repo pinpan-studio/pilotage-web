@@ -22,6 +22,8 @@ export const ONGLETS_PROJET = [
 /** État de navigation partagé : liste des projets accessibles et projet courant (d'après l'URL). */
 @Injectable({ providedIn: 'root' })
 export class NavigationService {
+  /** Incrémenté quand des documents changent (le menu « Documentation » se recharge). */
+  readonly documentsModifies = signal(0);
   private readonly api = inject(Api);
   private readonly router = inject(Router);
   readonly projets = signal<ProjetResumeDto[] | null>(null);

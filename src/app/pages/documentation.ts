@@ -4,7 +4,8 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { marked } from 'marked';
 import { Api } from '../../api/genere/api';
-import { projetsDocument, projetsDocuments, referentielsCatalogue } from '../../api/genere/functions';
+import { generationGenerer, projetsDocument, projetsDocuments, referentielsCatalogue } from '../../api/genere/functions';
+import { NavigationService } from '../noyau/navigation.service';
 import { DocumentDetailDto, DocumentDto } from '../../api/genere/models';
 import { ancrer } from '../noyau/lecteur';
 import { Chargement } from '../noyau/chargement';
@@ -26,8 +27,9 @@ const ICONES: Record<string, string> = { TDR: 'gavel', 'NOTE-CADRAGE': 'flag', P
 export const teinte = (phase: string) => TEINTES[phase] ?? 200;
 export const icone = (code: string) => ICONES[code] ?? 'description';
 const minutes = (md: string) => Math.max(1, Math.round(md.split(/\s+/).length / 220));
-/** Documents mis en avant : rédigés, et indispensables ou remis au client. */
-export const documentationVisible = (d: DocumentDto) => d.nb_versions > 0 && d.statut !== 'sans_objet' && (d.importance === 'indispensable' || d.livrable);
+/** Documents mis en avant : les indispensables (même à produire) et les livrables client déjà rédigés. */
+export const documentationVisible = (d: DocumentDto) => d.statut !== 'sans_objet' && (d.importance === 'indispensable' || (d.livrable && d.nb_versions > 0));
+export const redige = (d: DocumentDto) => d.nb_versions > 0;
 
 const STYLES_COMMUNS = `
   .cat { font: 600 11px/1.4 var(--font-body); text-transform: uppercase; letter-spacing: .06em; color: var(--mat-sys-primary); }
@@ -57,6 +59,8 @@ const STYLES_COMMUNS = `
     .post .art { aspect-ratio: 16 / 10; border-radius: 14px; margin-bottom: var(--space-1); transition: transform .25s; } .post .art mat-icon { font-size: 46px; width: 46px; height: 46px; }
     .post h3 { margin: 0; font-size: 17px; line-height: 1.35; font-weight: 600; text-wrap: balance; }
     .post p { margin: 0; line-height: 1.55; font-size: 13.5px; color: var(--mat-sys-on-surface-variant); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .post.vide .art { background: transparent; border: 2px dashed hsl(var(--h) 20% 75%); position: relative; } .post.vide .art mat-icon { opacity: .35; }
+    .a-produire { position: absolute; top: 10px; left: 10px; font: 600 11px var(--font-body); padding: 2px 8px; border-radius: 99px; background: var(--mat-sys-surface-container-high); color: var(--mat-sys-on-surface-variant); }
     .post:hover .art { transform: scale(1.02); } .post:hover h3 { color: var(--mat-sys-primary); }
     .side { position: sticky; top: 0; display: flex; flex-direction: column; gap: var(--space-4); }
     .side .card { padding: var(--space-5); border-radius: 18px; background: var(--card-bg, var(--mat-sys-surface-container-low)); } .side h3 { margin: 0 0 var(--space-3); font-size: 16px; font-weight: 600; }
@@ -84,9 +88,9 @@ const STYLES_COMMUNS = `
         </nav>
         <div class="grid">
           @for (d of grille(); track d.id) {
-            <a class="post" [routerLink]="[d.code]"><div class="art" [style.--h]="teinte(d.phase)"><mat-icon>{{ icone(d.code) }}</mat-icon></div>
+            <a class="post" [class.vide]="!d.nb_versions" [routerLink]="[d.code]"><div class="art" [style.--h]="teinte(d.phase)"><mat-icon>{{ icone(d.code) }}</mat-icon>@if (!d.nb_versions) { <span class="a-produire">À produire</span> }</div>
               <span class="cat">{{ phase(d.phase) }}{{ d.importance === 'indispensable' ? ' · indispensable' : '' }}</span><h3>{{ d.titre }}</h3><p>{{ resume(d) }}</p>
-              <small class="meta">v{{ d.version }} · {{ d.statut | libelle }}{{ d.livrable ? ' · livrable client' : '' }}</small></a>
+              <small class="meta">@if (d.nb_versions) { v{{ d.version }} · {{ d.statut | libelle }}{{ d.livrable ? ' · livrable client' : '' }} } @else { {{ d.generable ? 'Générable à partir du projet' : 'À rédiger' }} }</small></a>
           } @empty { <app-empty-state icon="menu_book" title="Aucun document rédigé" subtitle="Rédigez ou générez les livrables depuis l’onglet Livrables, ou demandez à l’agent : /document." /> }
         </div>
       </div>
@@ -96,7 +100,7 @@ const STYLES_COMMUNS = `
           <div class="jauge"><span [style.width.%]="indispensables().length ? indispensablesRediges() / indispensables().length * 100 : 0"></span></div>
           @for (d of indispensables(); track d.id) {
             <div class="ind"><mat-icon [class]="d.nb_versions ? 'ok' : 'ko'">{{ d.nb_versions ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
-              @if (d.nb_versions) { <a [routerLink]="[d.code]">{{ d.titre }}</a> } @else { <a [routerLink]="['/projets', p.code(), 'livrables', d.code]" title="À produire">{{ d.titre }}</a> }</div>
+              <a [routerLink]="[d.code]" [title]="d.nb_versions ? '' : 'À produire'">{{ d.titre }}</a></div>
           }
         </section>
         <section class="card recents"><h3>Mis à jour récemment</h3><ol>
@@ -114,12 +118,12 @@ export class Documentation {
   readonly teinte = teinte; readonly icone = icone;
   phase = (c: string) => this.ref.phase(c);
   readonly visibles = computed(() => (this.docs() ?? []).filter(documentationVisible));
-  readonly une = computed(() => this.visibles().find((d) => d.code === 'DAT') ?? this.visibles().find((d) => d.code === 'SFD') ?? this.visibles()[0] ?? null);
+  readonly une = computed(() => { const r = this.visibles().filter(redige); return r.find((d) => d.code === 'DAT') ?? r.find((d) => d.code === 'SFD') ?? r[0] ?? null; });
   readonly phasesPresentes = computed(() => [...new Set(this.visibles().map((d) => d.phase))]);
   readonly grille = computed(() => this.visibles().filter((d) => d !== this.une() && (!this.filtre() || d.phase === this.filtre())));
   readonly indispensables = computed(() => (this.docs() ?? []).filter((d) => d.importance === 'indispensable' && d.statut !== 'sans_objet'));
   readonly indispensablesRediges = computed(() => this.indispensables().filter((d) => d.nb_versions > 0).length);
-  readonly recents = computed(() => [...this.visibles()].sort((a, b) => b.version.localeCompare(a.version, 'fr', { numeric: true })).slice(0, 5));
+  readonly recents = computed(() => [...this.visibles().filter(redige)].sort((a, b) => b.version.localeCompare(a.version, 'fr', { numeric: true })).slice(0, 5));
   resume(d: DocumentDto) { return d.notes || this.descriptions.get(d.code) || ''; }
   private readonly descriptions = new Map<string, string>();
   constructor() {
@@ -152,6 +156,8 @@ export class Documentation {
     .toc li.sub a { padding-left: 26px; font-size: 12.5px; }
     .toc a { display: block; margin-left: -2px; padding: 7px 12px 7px 16px; border-left: 2px solid transparent; font-size: 13px; line-height: 1.4; color: var(--mat-sys-on-surface-variant); text-decoration: none; cursor: pointer; }
     .toc a:hover { color: var(--mat-sys-on-surface); } .toc a.on { border-left-color: var(--mat-sys-primary); color: var(--mat-sys-primary); font-weight: 600; }
+    .vide-doc { text-align: center; padding: var(--space-10) var(--space-6); border: 2px dashed var(--mat-sys-outline-variant); border-radius: 20px; display: flex; flex-direction: column; align-items: center; gap: var(--space-3); }
+    .vide-doc > mat-icon { font-size: 44px; width: 44px; height: 44px; color: var(--mat-sys-primary); } .vide-doc h2 { margin: 0; font-size: 20px; } .vide-doc p { margin: 0 0 var(--space-2); max-width: 52ch; color: var(--mat-sys-on-surface-variant); }
     .main { min-width: 0; } .main .prose { max-width: none; } .main.lg .prose { font-size: 17px; line-height: 1.75; } .main.serif .prose { font-family: Georgia, 'Times New Roman', serif; }
     .rail { position: sticky; top: 16px; display: flex; flex-direction: column; gap: var(--space-2); }
     .rail button { display: flex; flex-direction: column; align-items: center; gap: 2px; width: 54px; padding: 8px 0; border: 0; border-radius: 16px; background: none; color: var(--mat-sys-on-surface-variant); cursor: pointer; }
@@ -176,7 +182,7 @@ export class Documentation {
       <div class="byline">
         <span class="ava" [style.background]="couleur(d.version_courante?.auteur ?? '')">{{ initiales(d.version_courante?.auteur ?? '?') }}</span>
         <div class="who"><strong>{{ d.version_courante?.auteur || 'Équipe projet' }}@if (d.version_courante?.auteur_type === 'agent') { · agent IA }</strong>
-          <span>Version {{ d.version_courante?.numero }} du {{ d.version_courante?.cree_le | dateFr }} · {{ minutes() }} min de lecture</span></div>
+          <span>@if (d.version_courante) { Version {{ d.version_courante.numero }} du {{ d.version_courante.cree_le | dateFr }} · {{ minutes() }} min de lecture } @else { À produire }</span></div>
         <app-statut [code]="d.statut" />
         <span class="spacer"></span>
         <div class="reading" role="group" aria-label="Réglages de lecture">
@@ -192,7 +198,16 @@ export class Documentation {
       <aside class="toc" aria-label="Sommaire"><span class="text-overline">Sommaire</span><ol>
         @for (t of rendu().sommaire; track t.id) { <li [class.sub]="t.niveau === 3"><a [class.on]="actif() === t.id" (click)="aller(t.id)">{{ t.texte }}</a></li> }</ol></aside>
       <article class="main" [class.lg]="grand()" [class.serif]="serif()">
-        <div #corps class="prose" appSchemas [innerHTML]="rendu().html"></div>
+        @if (d.version_courante) { <div class="prose" appSchemas [innerHTML]="rendu().html"></div> }
+        @else {
+          <section class="vide-doc">
+            <mat-icon>{{ d.generable ? 'auto_awesome' : 'edit_note' }}</mat-icon>
+            <h2>Ce document n’est pas encore rédigé</h2>
+            <p>{{ d.generable ? 'Pilotage peut le composer à partir des données du projet (' + sources(d.code) + '). Vous le relirez et le compléterez ensuite.' : 'Il se rédige dans l’onglet Livrables, ou par l’agent (/document ' + d.code + ').' }}</p>
+            @if (d.generable && p.peutEcrire()) { <button mat-flat-button color="primary" (click)="generer()" [disabled]="generation()"><mat-icon>auto_awesome</mat-icon>{{ generation() ? 'Génération…' : 'Générer depuis le projet' }}</button> }
+            <a mat-stroked-button [routerLink]="['/projets', p.code(), 'livrables', d.code]"><mat-icon>edit_note</mat-icon>Ouvrir dans Livrables</a>
+          </section>
+        }
         <section class="fin">
           <span class="ava" style="background: var(--mat-sys-primary)"><mat-icon>description</mat-icon></span>
           <div><span class="text-overline">{{ d.code }} · {{ d.importance === 'indispensable' ? 'document indispensable' : 'document facultatif' }}{{ d.livrable ? ' · livrable client' : '' }}</span>
@@ -256,6 +271,18 @@ export class DocArticle implements OnDestroy {
   haut() { this.defileur?.scrollTo({ top: 0, behavior: 'smooth' }); }
   exporter(f: 'pdf' | 'docx') { const d = this.d()!; this.fichiers.telecharger(`/projets/${this.p.code()}/documents/${d.code}/export?format=${f}`, `${d.code}.${f}`).catch((e) => this.s.erreur(e)); }
   copier() { navigator.clipboard?.writeText(location.href).then(() => { this.copie.set(true); setTimeout(() => this.copie.set(false), 1600); }).catch(() => undefined); }
+  readonly generation = signal(false);
+  private readonly nav = inject(NavigationService);
+  sources(code: string) {
+    return ({ DAT: 'dépôts et technologies, décisions d’architecture, documentation technique', SFD: 'exigences et fonctionnalités', PLANNING: 'jalons', 'CAHIER-RECETTE': 'cas de test', 'PV-RECETTE': 'dernière campagne',
+      'PLAN-RECETTE': 'traçabilité et campagnes', 'NOTE-CADRAGE': 'description, exigences, jalons, parties prenantes, risques', RAPPORTS: 'indicateurs, risques, actions' } as Record<string, string>)[code] ?? 'données du projet';
+  }
+  async generer() {
+    const d = this.d()!; this.generation.set(true);
+    const r = await this.s.faire(() => this.api.invoke(generationGenerer, { code: this.p.code(), doc: d.code, body: {} }), `${d.code} généré`);
+    this.generation.set(false);
+    if (r) { this.d.set(await this.api.invoke(projetsDocument, { code: this.p.code(), doc: d.code })); this.nav.documentsModifies.update((n) => n + 1); this.p.rafraichir(); setTimeout(() => this.attacher(), 50); }
+  }
   initiales = (n: string) => n.split(/\s+/).filter(Boolean).map((x) => x[0]).join('').slice(0, 2).toUpperCase() || '?';
   couleur(n: string) { let h = 0; for (const c of n) h = (h * 31 + c.charCodeAt(0)) % 360; return `hsl(${h} 45% 45%)`; }
 }

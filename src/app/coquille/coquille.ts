@@ -136,7 +136,7 @@ export class Coquille {
     const docs = this.docsProjet().filter((d) => d.projet === code);
     if (code && docs.length) g.push({ label: 'Documentation', icon: 'menu_book', items: [
       { label: 'Vue d’ensemble', icon: 'auto_stories', path: `/projets/${code}/documentation` },
-      ...docs.map((d) => ({ label: d.titre, icon: icone(d.code), path: `/projets/${code}/documentation/${d.code}`, badge: null })) ] });
+      ...docs.map((d) => ({ label: d.redige ? d.titre : `${d.titre} (à produire)`, icon: d.redige ? icone(d.code) : 'draft', path: `/projets/${code}/documentation/${d.code}`, badge: null })) ] });
     const autres = (this.nav.projets() ?? []).filter((x) => x.code !== code);
     if (autres.length) g.push({ label: 'Projets', icon: 'folder', collapsible: true, items: autres.map((x) => ({ label: x.nom, icon: 'folder', path: `/projets/${x.code}`, badge: x.nb_alertes.haute || null })) });
     g.push({ label: 'Équipe', icon: 'groups', items: [
@@ -152,10 +152,10 @@ export class Coquille {
     return g;
   });
   /** Documents rédigés et importants du projet courant (menu « Documentation »). */
-  private readonly docsProjet = signal<{ projet: string; code: string; titre: string }[]>([]);
+  private readonly docsProjet = signal<{ projet: string; code: string; titre: string; redige: boolean }[]>([]);
   private chargerDocs(code: string | null) {
     if (!code) { this.docsProjet.set([]); return; }
-    this.api.invoke(projetsDocuments, { code }).then((l) => this.docsProjet.set(l.filter(documentationVisible).map((d) => ({ projet: code, code: d.code, titre: d.titre })))).catch(() => this.docsProjet.set([]));
+    this.api.invoke(projetsDocuments, { code }).then((l) => this.docsProjet.set(l.filter(documentationVisible).map((d) => ({ projet: code, code: d.code, titre: d.titre, redige: d.nb_versions > 0 })))).catch(() => this.docsProjet.set([]));
   }
   /** « À traiter » (API, selon le rôle sur chaque projet) + alertes hautes du portefeuille. L'état « lu » est mémorisé par navigateur. */
   private readonly api = inject(Api);
@@ -188,7 +188,7 @@ export class Coquille {
     this.nav.chargerProjets();
     this.eq.charger();
     this.chargerNotifications();
-    effect(() => { const c = this.nav.projetCourant(); untracked(() => this.chargerDocs(c)); });
+    effect(() => { const c = this.nav.projetCourant(); this.nav.documentsModifies(); untracked(() => this.chargerDocs(c)); });
     this.router.events.pipe(filter((e) => e instanceof NavigationEnd)).subscribe(() => { const c = this.nav.projetCourant(); if (c && /\/(livrables|documentation)/.test(this.router.url)) this.chargerDocs(c); });
     const minuteur = setInterval(() => this.chargerNotifications(), 120_000);
     inject(DestroyRef).onDestroy(() => clearInterval(minuteur));
