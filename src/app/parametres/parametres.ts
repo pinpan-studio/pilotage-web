@@ -24,6 +24,7 @@ export class Parametres {
     { lien: 'securite', libelle: 'Sécurité', icone: 'shield' },
     { lien: 'equipe', libelle: 'Équipe et rôles', icone: 'group' },
     { lien: 'equipes', libelle: 'Mes équipes', icone: 'workspaces' },
+    { lien: 'catalogue', libelle: 'Catalogue documentaire', icone: 'library_books' },
     { lien: 'claude-code', libelle: 'Assistants IA (MCP)', icone: 'smart_toy' },
   ];
 }

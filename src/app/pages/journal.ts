@@ -2,6 +2,11 @@ import { Component, computed, effect, inject, signal, untracked, viewChild } fro
 import { MatIconModule } from '@angular/material/icon';
 import { Api } from '../../api/genere/api';
 import { projetsJournal, projetsSessions } from '../../api/genere/functions';
+import { FormsModule } from '@angular/forms';
+import { MatButtonModule } from '@angular/material/button';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { versIso } from '../noyau/dates';
+import { SearchableSelectComponent } from '../shared/components/searchable-select/searchable-select.component';
 import { EvenementDto, SessionDto } from '../../api/genere/models';
 import { PIPES } from '../noyau/pipes';
 import { dateHeure } from '../noyau/format';
@@ -21,13 +26,26 @@ type Vue = 'evenements' | 'sessions';
  */
 @Component({
   selector: 'app-journal',
-  imports: [MatIconModule, GroupedBoardComponent, SkeletonComponent, DefilementInfiniDirective, ...PIPES],
-  styles: [`.card.plan { padding: var(--space-4); } .fin { padding: var(--space-4) 0 var(--space-2); text-align: center; font-size: var(--fs-caption); color: var(--text-muted); }`],
+  imports: [MatIconModule, GroupedBoardComponent, SkeletonComponent, DefilementInfiniDirective, ...PIPES, FormsModule, MatButtonModule, MatDatepickerModule, SearchableSelectComponent],
+  styles: [`.filtres-j { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: var(--space-2); margin: var(--space-3) 0; align-items: center; }
+    .card.plan { padding: var(--space-4); } .fin { padding: var(--space-4) 0 var(--space-2); text-align: center; font-size: var(--fs-caption); color: var(--text-muted); }`],
   template: `
   <div class="m3-filter-toggle" role="tablist" aria-label="Journal">
     <button type="button" role="tab" [class.active]="vue() === 'evenements'" (click)="vue.set('evenements')"><mat-icon>history</mat-icon>Événements</button>
     <button type="button" role="tab" [class.active]="vue() === 'sessions'" (click)="vue.set('sessions')"><mat-icon>code</mat-icon>Sessions</button>
   </div>
+  @if (vue() === 'evenements') {
+    <div class="filtres-j">
+      <app-searchable-select [ngModel]="f().depot" (ngModelChange)="filtrer({ depot: $event })" [options]="oDepots()" icon="source" placeholder="Tous les dépôts" [allowNull]="true" nullLabel="Tous les dépôts" />
+      <app-searchable-select [ngModel]="f().evt" (ngModelChange)="filtrer({ evt: $event })" [options]="oTypes" icon="category" placeholder="Tous les types" [allowNull]="true" nullLabel="Tous les types" />
+      <div class="form-field"><div class="field-box"><mat-icon>person</mat-icon><input placeholder="Auteur" [ngModel]="f().auteur" (change)="filtrer({ auteur: $any($event.target).value })" list="auteurs-j" /><datalist id="auteurs-j">@for (a of auteurs(); track a) { <option [value]="a"></option> }</datalist></div></div>
+      <div class="form-field"><div class="field-box"><mat-icon>checklist</mat-icon><input placeholder="F-012" [ngModel]="f().fonctionnalite" (change)="filtrer({ fonctionnalite: $any($event.target).value.trim().toUpperCase() })" /></div></div>
+      <div class="form-field"><div class="field-box"><mat-icon>date_range</mat-icon>
+        <mat-date-range-input [rangePicker]="per"><input matStartDate [ngModel]="debut" (dateChange)="debut = $event.value" placeholder="Du" /><input matEndDate [ngModel]="fin2" (dateChange)="fin2 = $event.value; filtrer({ depuis: versIso(debut) ?? undefined, jusqua: versIso(fin2) ?? undefined })" placeholder="au" /></mat-date-range-input>
+        <mat-date-range-picker #per /><button mat-icon-button type="button" (click)="per.open()" aria-label="Période"><mat-icon>calendar_month</mat-icon></button></div></div>
+      @if (actifs()) { <button mat-button (click)="reinitialiser()"><mat-icon>filter_alt_off</mat-icon>Effacer</button> }
+    </div>
+  }
   <section class="card plan">
     @if (vue() === 'evenements') {
       @if (elements().length) {
@@ -69,6 +87,19 @@ export class Journal {
       tags: [...s.fonctionnalites, ...(s.notes.length ? [`${s.notes.length} note(s)`] : [])] };
   }));
 
+  readonly f = signal<{ depot?: string; evt?: string; auteur?: string; fonctionnalite?: string; depuis?: string; jusqua?: string }>({});
+  debut: Date | null = null; fin2: Date | null = null;
+  readonly versIso = versIso;
+  readonly oTypes = Object.keys(ICONES).map((k) => ({ value: k, label: k, icon: ICONES[k] }));
+  readonly oDepots = computed(() => (this.p.detail()?.depots ?? []).map((d) => ({ value: d.nom, label: d.nom, icon: 'source' })));
+  readonly auteurs = computed(() => [...new Set([...(this.sessions() ?? []).map((s) => s.auteur), ...this.elements().map((e) => e.auteur)].filter(Boolean))].sort());
+  readonly actifs = computed(() => Object.values(this.f()).some((v) => !!v));
+  filtrer(x: Partial<ReturnType<typeof this.f>>) {
+    const n = { ...this.f(), ...x }; for (const k of Object.keys(n) as (keyof typeof n)[]) if (!n[k]) delete n[k];
+    this.f.set(n); this.recharger();
+  }
+  reinitialiser() { this.debut = null; this.fin2 = null; this.f.set({}); this.recharger(); }
+  private recharger() { this.page = 0; this.elements.set([]); this.total.set(null); this.chargement.set(false); this.suivante(); }
   constructor() {
     effect(() => {
       const c = this.p.code(); if (!c) return;
@@ -83,7 +114,7 @@ export class Journal {
     if (this.chargement() || this.fin()) return;
     this.chargement.set(true);
     try {
-      const r = await this.api.invoke(projetsJournal, { code: this.p.code(), page: this.page + 1, par_page: PAR_PAGE });
+      const r = await this.api.invoke(projetsJournal, { code: this.p.code(), page: this.page + 1, par_page: PAR_PAGE, ...this.f() });
       this.page = r.page; this.total.set(r.total); this.elements.update((l) => [...l, ...r.elements]);
     } finally { this.chargement.set(false); setTimeout(() => this.sentinelle()?.verifier(), 50); }
   }

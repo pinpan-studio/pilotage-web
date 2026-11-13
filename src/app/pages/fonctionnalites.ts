@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { marked } from 'marked';
 import { Saisie } from '../noyau/saisie';
+import { Http } from '../noyau/http';
 import { SearchableSelectComponent } from '../shared/components/searchable-select/searchable-select.component';
 import { ecritureStatutFonctionnalite, gestionCreerFonctionnalite, gestionMajFonctionnalite } from '../../api/genere/functions';
 import { Router, RouterLink } from '@angular/router';
@@ -132,6 +133,9 @@ export class Fonctionnalites {
           <div class="boutons">
             <button mat-stroked-button (click)="modifier(f)"><mat-icon>edit</mat-icon>Modifier</button>
             @for (s of transitions(f.statut_effectif, f.depots.length > 0); track s.code) { <button mat-button (click)="statut(s.code)"><mat-icon>{{ s.icone }}</mat-icon>{{ s.label }}</button> }
+            @if (p.estChef() && f.statut !== 'abandonne' && f.statut !== 'valide') { <button mat-button (click)="abandonner()"><mat-icon>do_not_disturb_on</mat-icon>Abandonner</button> }
+            @if (p.estChef() && f.statut === 'abandonne') { <button mat-button (click)="statut('a_faire')"><mat-icon>restart_alt</mat-icon>Reprendre</button> }
+            @if (p.estChef()) { <button mat-button color="warn" (click)="supprimer()"><mat-icon>delete</mat-icon>Supprimer</button> }
           </div>
           @if (f.depots.length) { <hr /><span class="text-overline">Avancement par dépôt</span><p class="mini" style="margin: 4px 0 0">Le statut de la fonctionnalité découle de ses dépôts.</p>
             @for (d of f.depots; track d.depot) { <div style="margin-top: 6px"><span class="mini">{{ d.depot }}</span>
@@ -167,6 +171,17 @@ export class Fonctionnalite {
   async enregistrer() {
     const e = this.edition()!;
     if (await this.s.faire(() => this.api.invoke(gestionMajFonctionnalite, { code: this.p.code(), ref: this.refF(), body: { titre: e.titre.trim(), lot: e.lot, poids: +e.poids as 1 | 2 | 3 | 5 | 8, description: e.description } }), 'Fonctionnalité mise à jour')) { this.edition.set(null); this.recharger(); }
+  }
+  private readonly http = inject(Http);
+  private readonly router2 = inject(Router);
+  async abandonner() {
+    const notes = prompt('Motif de l’abandon (conservé dans la fiche)'); if (notes === null) return;
+    if (await this.s.faire(() => this.api.invoke(ecritureStatutFonctionnalite, { code: this.p.code(), ref: this.refF(), body: { statut: 'abandonne', notes: notes || undefined } }), 'Fonctionnalité abandonnée')) this.recharger();
+  }
+  async supprimer() {
+    if (await this.s.confirmer(`Supprimer définitivement ${this.refF()} ? Préférez « Abandonner » pour garder la trace dans les indicateurs.`, () => this.http.supprimer(this.p.code(), 'fonctionnalites', this.refF()))) {
+      this.p.rafraichir(); this.router2.navigate(['/projets', this.p.code(), 'fonctionnalites']);
+    }
   }
   async statut(statut: string, depot?: string) {
     const notes = statut === 'bloque' ? (prompt('Cause du blocage') ?? undefined) : undefined;

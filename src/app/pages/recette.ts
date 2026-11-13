@@ -12,6 +12,7 @@ import { PIPES } from '../noyau/pipes';
 import { Statut } from '../noyau/statut';
 import { Chargement } from '../noyau/chargement';
 import { Saisie } from '../noyau/saisie';
+import { Http } from '../noyau/http';
 import { SearchableSelectComponent } from '../shared/components/searchable-select/searchable-select.component';
 import { EmptyStateComponent } from '../shared/components/empty-state/empty-state.component';
 import { ProjetCourant } from './projet';
@@ -79,11 +80,12 @@ type Res = 'ok' | 'ko' | 'reserve' | 'non_teste';
     @for (g of groupes(); track g.ref) {
       <section class="card pane">
         <h3 style="margin: 0 0 8px">{{ g.ref }} — {{ g.titre }} <app-statut [code]="g.statut" /></h3>
-        <div class="defile"><table class="tab"><thead><tr><th>Cas</th><th>Titre</th><th>Étapes</th><th>Attendu</th><th>Dernier résultat</th></tr></thead><tbody>
+        <div class="defile"><table class="tab"><thead><tr><th>Cas</th><th>Titre</th><th>Étapes</th><th>Attendu</th><th>Dernier résultat</th><th></th></tr></thead><tbody>
           @for (c of g.cas; track c.id) {
             <tr><td><code>{{ c.ref }}</code></td><td>{{ c.titre }}@if (c.preconditions) { <div class="mini">{{ c.preconditions }}</div> }</td>
               <td><ol style="margin: 0; padding-left: 18px">@for (e of c.etapes; track $index) { <li>{{ e }}</li> }</ol></td><td>{{ c.attendu }}</td>
-              <td>@if (dernier(c.ref); as d) { <app-statut [code]="d.resultat" /> <span class="mini">{{ d.campagne }}</span> } @else { <app-statut code="non_teste" /> }</td></tr>
+              <td>@if (dernier(c.ref); as d) { <app-statut [code]="d.resultat" /> <span class="mini">{{ d.campagne }}</span> } @else { <app-statut code="non_teste" /> }</td>
+              <td>@if (p.peutEcrire()) { <button mat-icon-button (click)="supprimerCas(c)" aria-label="Supprimer"><mat-icon>delete</mat-icon></button> }</td></tr>
           }</tbody></table></div>
       </section>
     } @empty { <app-empty-state icon="fact_check" title="Cahier de recette vide" subtitle="Ajoutez des cas de test, ou demandez à l'agent : /recette cas" /> }
@@ -174,6 +176,10 @@ export class Recette {
     this.api.invoke(projetsTracabilite, { code }).then((t) => this.trace.set(t)).catch(() => undefined);
     this.campagnes.set(await Promise.all(camps.map((c) => this.api.invoke(projetsCampagne, { code, ref: c.ref }))));
     this.charge.set(true);
+  }
+  private readonly http = inject(Http);
+  async supprimerCas(c: CasTest) {
+    if (await this.s.confirmer(`Supprimer le cas de test ${c.ref} ?`, () => this.http.supprimer(this.p.code(), 'cas-test', c.ref))) { await this.charger(); this.p.rafraichir(); }
   }
   async creerCas() {
     this.enCours.set(true);

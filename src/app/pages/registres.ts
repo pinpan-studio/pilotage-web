@@ -6,9 +6,10 @@ import { MatDatepickerModule } from '@angular/material/datepicker';
 import { Api } from '../../api/genere/api';
 import {
   gestionCompteRendu, gestionCreerJalon, gestionCreerRetour, gestionCreerRisque, gestionDecider, gestionMajJalon, gestionMajRetour, gestionMajRisque, gestionProposerChangement,
-  projetsChangements, projetsFonctionnalites, projetsJalons, projetsRetours, projetsReunions, projetsRisques,
+  projetsChangements, projetsFonctionnalites, projetsJalons, projetsRetours, projetsReunions, projetsRisques, projetsAdr, projetsChangelog, projetsPartiesPrenantes, gestionCreerPp, gestionStatutAdr,
 } from '../../api/genere/functions';
-import { Changement, FonctionnaliteDto, Jalon, RetourClient, Reunion, Risque } from '../../api/genere/models';
+import { Adr, ChangelogEntree, Changement, FonctionnaliteDto, Jalon, PartiePrenante, RetourClient, Reunion, Risque } from '../../api/genere/models';
+import { Http } from '../noyau/http';
 import { versIso } from '../noyau/dates';
 import { PIPES } from '../noyau/pipes';
 import { Statut } from '../noyau/statut';
@@ -18,7 +19,7 @@ import { SearchableSelectComponent } from '../shared/components/searchable-selec
 import { EmptyStateComponent } from '../shared/components/empty-state/empty-state.component';
 import { ProjetCourant } from './projet';
 
-type Vue = 'retours' | 'risques' | 'changements' | 'reunions' | 'jalons';
+type Vue = 'retours' | 'risques' | 'changements' | 'reunions' | 'jalons' | 'decisions' | 'changelog' | 'parties';
 const opts = (l: [string, string][], icon?: string) => l.map(([value, label]) => ({ value, label, icon }));
 
 /** Registres de gestion : retours clients, risques, demandes de changement, comptes rendus, jalons — saisie et suivi. */
@@ -27,14 +28,22 @@ const opts = (l: [string, string][], icon?: string) => l.map(([value, label]) =>
   imports: [FormsModule, MatButtonModule, MatIconModule, MatDatepickerModule, Statut, Chargement, SearchableSelectComponent, EmptyStateComponent, ...PIPES],
   styles: [`.crit { display: inline-block; min-width: 28px; text-align: center; border-radius: 999px; padding: 1px 8px; font-weight: 600; font-size: 12px; }
     .crit.h { background: var(--mat-sys-error-container); color: var(--mat-sys-on-error-container); } .crit.m { background: var(--mat-sys-tertiary-container); color: var(--mat-sys-on-tertiary-container); }
-    .crit.b { background: var(--mat-sys-surface-container-high); } .prose-cr { white-space: pre-wrap; font-size: 13px; margin: 8px 0 0; }`],
+    .crit.b { background: var(--mat-sys-surface-container-high); }
+    .matrice { display: grid; grid-template-columns: 36px repeat(4, minmax(0, 1fr)); gap: 4px; max-width: 520px; margin: 0 0 16px; position: relative; }
+    .matrice .lib { font-size: 11px; color: var(--mat-sys-on-surface-variant); display: grid; place-items: center; }
+    .matrice .case { min-height: 44px; border-radius: 8px; background: var(--mat-sys-surface-container-high); display: flex; flex-wrap: wrap; gap: 4px; padding: 4px; align-content: flex-start; font: 600 11px ui-monospace, monospace; }
+    .matrice .case.m { background: var(--mat-sys-tertiary-container); } .matrice .case.h { background: var(--mat-sys-error-container); color: var(--mat-sys-on-error-container); }
+    .matrice .axe-i { position: absolute; right: 0; top: -18px; font-size: 11px; color: var(--mat-sys-on-surface-variant); }
+    .adr { padding: 10px 0; border-bottom: 1px solid var(--mat-sys-outline-variant); } .adr p { margin: 6px 0 0; font-size: 13px; }
+    .statut-cl { font-size: 11px; font-weight: 700; padding: 1px 6px; border-radius: 6px; background: var(--mat-sys-surface-container-high); }
+    .cl-ajoute { background: color-mix(in srgb, #2e7d32 18%, transparent); } .cl-corrige { background: var(--mat-sys-tertiary-container); } .cl-retire { background: var(--mat-sys-error-container); } .prose-cr { white-space: pre-wrap; font-size: 13px; margin: 8px 0 0; }`],
   template: `
   <div class="tete">
     <div class="m3-filter-toggle" role="tablist" aria-label="Registre">
       @for (o of vues; track o.id) { <button type="button" role="tab" [class.active]="vue() === o.id" (click)="changer(o.id)"><mat-icon>{{ o.icone }}</mat-icon>{{ o.nom }}<span class="mini">&nbsp;{{ compte(o.id) }}</span></button> }
     </div>
     <span class="esp"></span>
-    @if (p.peutEcrire() || vue() === 'retours') { <button mat-flat-button color="primary" (click)="form.set(!form())"><mat-icon>add</mat-icon>{{ p.peutEcrire() ? libelleAjout() : 'Signaler un retour' }}</button> }
+    @if ((p.peutEcrire() && ajoutPossible()) || vue() === 'retours') { <button mat-flat-button color="primary" (click)="form.set(!form())"><mat-icon>add</mat-icon>{{ p.peutEcrire() ? libelleAjout() : 'Signaler un retour' }}</button> }
   </div>
 
   @if (form()) {
@@ -70,6 +79,13 @@ const opts = (l: [string, string][], icon?: string) => l.map(([value, label]) =>
           <div><label>Décisions (une par ligne)</label><div class="form-field"><div class="field-box textarea-box"><textarea name="de" rows="3" [(ngModel)]="n.decisions"></textarea></div></div></div>
           <div><label>Actions (une par ligne : action ; responsable ; AAAA-MM-JJ)</label><div class="form-field"><div class="field-box textarea-box"><textarea name="ac" rows="3" [(ngModel)]="n.actions"></textarea></div></div></div>
           <div class="large mini">Les actions sont ajoutées au plan d'actions (onglet Tâches) dans la même opération.</div></div> }
+        @case ('parties') { <div class="grille-form">
+          <div><label>Nom</label><div class="form-field"><div class="field-box"><input name="no" [(ngModel)]="n.nom" /></div></div></div>
+          <div><label>Fonction</label><div class="form-field"><div class="field-box"><input name="fo" [(ngModel)]="n.fonction" placeholder="DRH, DSI…" /></div></div></div>
+          <div><label>Organisme</label><div class="form-field"><div class="field-box"><input name="or" [(ngModel)]="n.organisme" /></div></div></div>
+          <div><label>Influence</label><app-searchable-select name="in" [(ngModel)]="n.influence" [options]="oInfluence" /></div>
+          <div class="large"><label>Rôle dans le projet</label><div class="form-field"><div class="field-box"><input name="ro" [(ngModel)]="n.role" placeholder="Valideur, utilisateur clé, sponsor…" /></div></div></div>
+          <div class="large"><label>Attentes</label><div class="form-field"><div class="field-box textarea-box"><textarea name="at" rows="2" [(ngModel)]="n.attentes"></textarea></div></div></div></div> }
         @case ('jalons') { <div class="grille-form">
           <div><label>Jalon</label><div class="form-field"><div class="field-box"><input name="no" [(ngModel)]="n.nom" placeholder="Recette du Lot 1" /></div></div></div>
           <div><label>Date prévue</label><div class="form-field"><div class="field-box"><input name="d" [matDatepicker]="dpj" [(ngModel)]="n.date" placeholder="jj/mm/aaaa" /><mat-datepicker-toggle [for]="dpj" /><mat-datepicker #dpj /></div></div></div>
@@ -87,17 +103,25 @@ const opts = (l: [string, string][], icon?: string) => l.map(([value, label]) =>
     <section class="card pane"><div class="defile">
     @switch (vue()) {
       @case ('retours') {
-        @if (retours().length) { <table class="tab"><thead><tr><th>Réf.</th><th>Retour</th><th>Type</th><th>Priorité</th><th>Date</th><th>Statut</th></tr></thead><tbody>
+        @if (retours().length) { <table class="tab"><thead><tr><th>Réf.</th><th>Retour</th><th>Type</th><th>Priorité</th><th>Date</th><th>Statut</th><th></th></tr></thead><tbody>
           @for (r of retours(); track r.id) { <tr><td><code>{{ r.ref }}</code></td><td>{{ (r.retour || r.contenu).slice(0, 220) }}@if (r.action) { <div class="mini">→ {{ r.action }}</div> }</td>
             <td>{{ r.type | libelle }}</td><td>{{ r.priorite | libelle }}</td><td>{{ r.date | dateFr }}</td>
-            <td>@if (p.peutEcrire()) { <select class="choix" [ngModel]="r.statut" (ngModelChange)="majRetour(r, $event)" [name]="'s' + r.ref">@for (o of oStatutRetour; track o.value) { <option [value]="o.value">{{ o.label }}</option> }</select> } @else { <app-statut [code]="r.statut" /> }</td></tr> }
+            <td>@if (p.peutEcrire()) { <select class="choix" [ngModel]="r.statut" (ngModelChange)="majRetour(r, $event)" [name]="'s' + r.ref">@for (o of oStatutRetour; track o.value) { <option [value]="o.value">{{ o.label }}</option> }</select> } @else { <app-statut [code]="r.statut" /> }</td>
+            <td>@if (p.peutEcrire()) { <button mat-icon-button (click)="supprimer('retours', r.ref, 'le retour ' + r.ref)" aria-label="Supprimer"><mat-icon>delete</mat-icon></button> }</td></tr> }
         </tbody></table> } @else { <app-empty-state icon="forum" title="Aucun retour client" /> } }
       @case ('risques') {
-        @if (risques().length) { <table class="tab"><thead><tr><th>Réf.</th><th>Risque</th><th>P × I</th><th>Parade</th><th>Responsable</th><th>Statut</th></tr></thead><tbody>
+        @if (risques().length) {
+          <div class="matrice"><div class="axe-i">Impact →</div>
+            @for (pr of [4, 3, 2, 1]; track pr) { <div class="lib">P{{ pr }}</div>
+              @for (im of [1, 2, 3, 4]; track im) { <div class="case" [class.h]="pr * im >= 9" [class.m]="pr * im >= 4 && pr * im < 9">@for (r of risquesEn(pr, im); track r.id) { <span [title]="r.titre">{{ r.ref }}</span> }</div> } }
+            <div></div>@for (im of [1, 2, 3, 4]; track im) { <div class="lib">I{{ im }}</div> }
+          </div>
+          <table class="tab"><thead><tr><th>Réf.</th><th>Risque</th><th>P × I</th><th>Parade</th><th>Responsable</th><th>Statut</th><th></th></tr></thead><tbody>
           @for (r of risques(); track r.id) { <tr><td><code>{{ r.ref }}</code></td><td>{{ r.titre }}<div class="mini">{{ r.categorie }}</div></td>
             <td><span class="crit" [class.h]="r.probabilite * r.impact >= 9" [class.m]="r.probabilite * r.impact >= 4 && r.probabilite * r.impact < 9" [class.b]="r.probabilite * r.impact < 4">{{ r.probabilite * r.impact }}</span> <span class="mini">{{ r.probabilite }}×{{ r.impact }}</span></td>
             <td>{{ r.parade }}</td><td>{{ r.responsable }}</td>
-            <td>@if (p.peutEcrire()) { <select class="choix" [ngModel]="r.statut" (ngModelChange)="majRisque(r, $event)" [name]="'s' + r.ref">@for (o of oStatutRisque; track o.value) { <option [value]="o.value">{{ o.label }}</option> }</select> } @else { <app-statut [code]="r.statut" /> }</td></tr> }
+            <td>@if (p.peutEcrire()) { <select class="choix" [ngModel]="r.statut" (ngModelChange)="majRisque(r, $event)" [name]="'s' + r.ref">@for (o of oStatutRisque; track o.value) { <option [value]="o.value">{{ o.label }}</option> }</select> } @else { <app-statut [code]="r.statut" /> }</td>
+            <td>@if (p.peutEcrire()) { <button mat-icon-button (click)="supprimer('risques', r.ref, 'le risque ' + r.ref)" aria-label="Supprimer"><mat-icon>delete</mat-icon></button> }</td></tr> }
         </tbody></table> } @else { <app-empty-state icon="warning" title="Aucun risque" /> } }
       @case ('changements') {
         @if (changements().length) { <table class="tab"><thead><tr><th>Réf.</th><th>Demande</th><th>Impact</th><th>Décision</th><th></th></tr></thead><tbody>
@@ -107,17 +131,38 @@ const opts = (l: [string, string][], icon?: string) => l.map(([value, label]) =>
             <td style="white-space: nowrap">@if (p.estChef() && c.decision === 'en_analyse') {
               <button mat-stroked-button (click)="decider(c, 'accepte')"><mat-icon>check</mat-icon>Accepter</button>
               <button mat-button (click)="decider(c, 'reporte')">Reporter</button>
-              <button mat-button color="warn" (click)="decider(c, 'refuse')">Refuser</button> }</td></tr> }
+              <button mat-button color="warn" (click)="decider(c, 'refuse')">Refuser</button> }
+              @if (p.estChef()) { <button mat-icon-button (click)="supprimer('changements', c.ref, 'la demande ' + c.ref)" aria-label="Supprimer"><mat-icon>delete</mat-icon></button> }</td></tr> }
         </tbody></table> @if (!p.estChef()) { <p class="mini">Seul un chef de projet peut décider d'une demande de changement.</p> } } @else { <app-empty-state icon="change_circle" title="Aucune demande de changement" /> } }
       @case ('reunions') {
         @for (r of reunions(); track r.id) { <article style="padding: 8px 0; border-bottom: 1px solid var(--mat-sys-outline-variant)">
           <strong>{{ r.date | dateFr }} — {{ r.titre || (r.type | libelle) }}</strong> <span class="mini">{{ r.participants.join(', ') }}</span>
+          @if (p.peutEcrire()) { <button mat-icon-button style="float: right" (click)="supprimer('reunions', r.id, 'ce compte rendu')" aria-label="Supprimer"><mat-icon>delete</mat-icon></button> }
           <p class="prose-cr">{{ r.contenu }}</p></article> } @empty { <app-empty-state icon="groups" title="Aucun compte rendu" /> } }
       @case ('jalons') {
-        @if (jalons().length) { <table class="tab"><thead><tr><th>Réf.</th><th>Jalon</th><th>Lot</th><th>Prévu</th><th>Atteint</th><th>Facturation</th></tr></thead><tbody>
+        @if (jalons().length) { <table class="tab"><thead><tr><th>Réf.</th><th>Jalon</th><th>Lot</th><th>Prévu</th><th>Atteint</th><th>Facturation</th><th></th></tr></thead><tbody>
           @for (j of jalons(); track j.id) { <tr><td><code>{{ j.ref }}</code></td><td>{{ j.nom }}</td><td>{{ j.lot }}</td><td>{{ j.date_prevue | dateFr }}</td>
-            <td>@if (j.date_reelle) { {{ j.date_reelle | dateFr }} } @else if (p.peutEcrire()) { <button mat-stroked-button (click)="atteint(j)"><mat-icon>flag</mat-icon>Marquer atteint</button> } @else { — }</td><td>{{ j.facturation }}</td></tr> }
+            <td>@if (j.date_reelle) { {{ j.date_reelle | dateFr }} } @else if (p.peutEcrire()) { <button mat-stroked-button (click)="atteint(j)"><mat-icon>flag</mat-icon>Marquer atteint</button> } @else { — }</td><td>{{ j.facturation }}</td>
+            <td>@if (p.estChef()) { <button mat-icon-button (click)="supprimer('jalons', j.ref, 'le jalon ' + j.ref)" aria-label="Supprimer"><mat-icon>delete</mat-icon></button> }</td></tr> }
         </tbody></table> } @else { <app-empty-state icon="flag" title="Aucun jalon" subtitle="Ajoutez les jalons du planning pour suivre les échéances." /> } }
+      @case ('decisions') {
+        @for (d of adr(); track d.id) { <article class="adr">
+          <div class="tete" style="margin: 0"><strong><code>{{ d.ref }}</code> {{ d.titre }}</strong><app-statut [code]="d.statut" /><span class="mini">{{ d.date | dateFr }}{{ d.fonctionnalites.length ? ' · ' + d.fonctionnalites.join(', ') : '' }}</span><span class="esp"></span>
+            @if (p.estChef() && d.statut === 'proposee') { <button mat-stroked-button (click)="statutAdr(d, 'acceptee')"><mat-icon>check</mat-icon>Accepter</button><button mat-button color="warn" (click)="statutAdr(d, 'rejetee')">Rejeter</button> }
+            @if (p.estChef() && d.statut === 'acceptee') { <button mat-button (click)="statutAdr(d, 'remplacee')">Marquer remplacée</button> }
+            @if (p.estChef()) { <button mat-icon-button (click)="supprimer('adr', d.ref, 'la décision ' + d.ref)" aria-label="Supprimer"><mat-icon>delete</mat-icon></button> }</div>
+          <p class="mini"><strong>Contexte</strong> — {{ d.contexte }}</p><p><strong>Décision</strong> — {{ d.decision }}</p>
+          @if (d.consequences) { <p class="mini"><strong>Conséquences</strong> — {{ d.consequences }}</p> }@if (d.alternatives) { <p class="mini"><strong>Alternatives</strong> — {{ d.alternatives }}</p> }
+        </article> } @empty { <app-empty-state icon="architecture" title="Aucune décision d'architecture" subtitle="L'agent les propose (ajouter_adr) ; le chef de projet les accepte ou les rejette ici." /> } }
+      @case ('changelog') {
+        @for (v of versions(); track v.version) { <h3 style="margin: 12px 0 4px">{{ v.version }}</h3><ul style="margin: 0 0 8px">
+          @for (e of v.entrees; track e.id) { <li><span class="statut-cl" [class]="'statut-cl cl-' + e.type">{{ libellesCl[e.type] }}</span> {{ e.texte }} <span class="mini">{{ refF(e.fonctionnalite_id) }}{{ e.date ? ' · ' + (e.date | dateFr) : '' }}</span></li> }</ul>
+        } @empty { <app-empty-state icon="history_edu" title="Journal des versions vide" subtitle="Alimenté par l'agent en fin de session (ajouter_entree_changelog)." /> } }
+      @case ('parties') {
+        @if (parties().length) { <table class="tab"><thead><tr><th>Nom</th><th>Fonction · organisme</th><th>Rôle</th><th>Influence</th><th>Attentes</th><th></th></tr></thead><tbody>
+          @for (pp of parties(); track pp.id) { <tr><td><strong>{{ pp.nom }}</strong></td><td>{{ pp.fonction }}{{ pp.organisme ? ' · ' + pp.organisme : '' }}</td><td>{{ pp.role }}</td><td>{{ pp.influence }}</td><td>{{ pp.attentes }}</td>
+            <td>@if (p.peutEcrire()) { <button mat-icon-button (click)="supprimer('parties-prenantes', pp.id, pp.nom)" aria-label="Supprimer"><mat-icon>delete</mat-icon></button> }</td></tr> }
+        </tbody></table> } @else { <app-empty-state icon="diversity_3" title="Aucune partie prenante" /> } }
     }
     </div></section>
   }`,
@@ -127,7 +172,27 @@ export class Registres {
   private readonly api = inject(Api);
   private readonly s = inject(Saisie);
   readonly vues: { id: Vue; nom: string; icone: string }[] = [{ id: 'retours', nom: 'Retours clients', icone: 'forum' }, { id: 'risques', nom: 'Risques', icone: 'warning' },
-    { id: 'changements', nom: 'Changements', icone: 'change_circle' }, { id: 'reunions', nom: 'Réunions', icone: 'groups' }, { id: 'jalons', nom: 'Jalons', icone: 'flag' }];
+    { id: 'changements', nom: 'Changements', icone: 'change_circle' }, { id: 'reunions', nom: 'Réunions', icone: 'groups' }, { id: 'jalons', nom: 'Jalons', icone: 'flag' },
+    { id: 'decisions', nom: 'Décisions', icone: 'architecture' }, { id: 'changelog', nom: 'Versions', icone: 'history_edu' }, { id: 'parties', nom: 'Parties prenantes', icone: 'diversity_3' }];
+  private readonly http = inject(Http);
+  readonly adr = signal<Adr[]>([]);
+  readonly changelog = signal<ChangelogEntree[]>([]);
+  readonly parties = signal<PartiePrenante[]>([]);
+  readonly oInfluence = opts([['forte', 'Forte'], ['moyenne', 'Moyenne'], ['faible', 'Faible']]);
+  readonly libellesCl: Record<string, string> = { ajoute: 'Ajouté', modifie: 'Modifié', corrige: 'Corrigé', retire: 'Retiré' };
+  readonly versions = computed(() => {
+    const m = new Map<string, ChangelogEntree[]>();
+    for (const e of this.changelog()) m.set(e.version, [...(m.get(e.version) ?? []), e]);
+    return [...m.entries()].sort((a, b) => b[0].localeCompare(a[0], 'fr', { numeric: true })).map(([version, entrees]) => ({ version, entrees }));
+  });
+  refF(id: string | null) { return id ? this.foncs().find((f) => f.id === id)?.ref ?? '' : ''; }
+  risquesEn(p: number, i: number) { return this.risques().filter((r) => r.probabilite === p && r.impact === i && r.statut !== 'clos'); }
+  async supprimer(type: string, cle: string, quoi: string) {
+    if (await this.s.confirmer(`Supprimer ${quoi} ? (la suppression est historisée)`, () => this.http.supprimer(this.p.code(), type, cle))) { await this.charger(); this.p.rafraichir(); }
+  }
+  async statutAdr(d: Adr, statut: 'acceptee' | 'rejetee' | 'remplacee') {
+    if (await this.s.faire(() => this.api.invoke(gestionStatutAdr, { code: this.p.code(), ref: d.ref, body: { statut } }), `${d.ref} : ${statut}`)) this.charger();
+  }
   readonly vue = signal<Vue>('retours');
   readonly form = signal(false);
   readonly charge = signal(false);
@@ -146,22 +211,24 @@ export class Registres {
   readonly oTypeReunion = opts([['comite', 'Comité de pilotage'], ['atelier', 'Atelier'], ['point', 'Point d’avancement'], ['recette', 'Recette'], ['autre', 'Autre']]);
   readonly oStatutRetour = opts([['nouveau', 'Nouveau'], ['en_cours', 'En cours'], ['resolu', 'Résolu'], ['rejete', 'Rejeté']]);
   readonly oStatutRisque = opts([['ouvert', 'Ouvert'], ['surveille', 'Surveillé'], ['survenu', 'Survenu'], ['clos', 'Clos']]);
-  readonly libelleAjout = computed(() => ({ retours: 'Nouveau retour', risques: 'Nouveau risque', changements: 'Nouvelle demande', reunions: 'Nouveau compte rendu', jalons: 'Nouveau jalon' })[this.vue()]);
+  readonly libelleAjout = computed(() => ({ retours: 'Nouveau retour', risques: 'Nouveau risque', changements: 'Nouvelle demande', reunions: 'Nouveau compte rendu', jalons: 'Nouveau jalon', parties: 'Nouvelle partie prenante' } as Record<string, string>)[this.vue()]);
+  readonly ajoutPossible = computed(() => !['decisions', 'changelog'].includes(this.vue()));
 
   constructor() { effect(() => { if (this.p.code()) this.charger(); }); }
   private vierge() { return { type: 'remarque', priorite: 'moyenne', probabilite: 2, impact: 2, date: new Date(), participants: '', decisions: '', actions: '', documents: '' } as any; }
   changer(v: Vue) { this.vue.set(v); this.form.set(false); this.n = this.vierge(); if (v === 'reunions') this.n.type = 'comite'; }
-  compte(v: Vue) { return { retours: this.retours, risques: this.risques, changements: this.changements, reunions: this.reunions, jalons: this.jalons }[v]().length; }
+  compte(v: Vue) { return ({ retours: this.retours, risques: this.risques, changements: this.changements, reunions: this.reunions, jalons: this.jalons, decisions: this.adr, changelog: this.changelog, parties: this.parties } as Record<Vue, () => unknown[]>)[v]().length; }
   async charger() {
     const code = this.p.code();
-    const [r, q, c, m, j, f] = await Promise.all([projetsRetours, projetsRisques, projetsChangements, projetsReunions, projetsJalons, projetsFonctionnalites].map((fn: any) => this.api.invoke(fn, { code }) as Promise<any>));
+    const [r, q, c, m, j, f, ad, cl, pp] = await Promise.all([projetsRetours, projetsRisques, projetsChangements, projetsReunions, projetsJalons, projetsFonctionnalites, projetsAdr, projetsChangelog, projetsPartiesPrenantes].map((fn: any) => this.api.invoke(fn, { code }) as Promise<any>));
+    this.adr.set([...ad].sort((x: any, y: any) => y.ref.localeCompare(x.ref, 'fr', { numeric: true }))); this.changelog.set(cl); this.parties.set(pp);
     this.retours.set([...r].sort((a: any, b: any) => b.ref.localeCompare(a.ref, 'fr', { numeric: true }))); this.risques.set(q); this.changements.set(c);
     this.reunions.set([...m].sort((a: any, b: any) => (b.date ?? '').localeCompare(a.date ?? ''))); this.jalons.set(j); this.foncs.set(f); this.charge.set(true);
   }
   valide() {
     const n = this.n;
     return ({ retours: (n.retour_md ?? '').trim().length > 1, risques: (n.titre ?? '').trim().length > 1, changements: (n.titre ?? '').trim().length > 1,
-      reunions: !!n.date && (n.contenu_md ?? '').trim().length > 0, jalons: (n.nom ?? '').trim().length > 1 })[this.vue()];
+      reunions: !!n.date && (n.contenu_md ?? '').trim().length > 0, jalons: (n.nom ?? '').trim().length > 1, parties: (n.nom ?? '').trim().length > 1 } as Record<string, boolean>)[this.vue()];
   }
   private liste = (s: string) => (s ?? '').split(/[,\n]/).map((x) => x.trim()).filter(Boolean);
   async creer() {
@@ -174,8 +241,9 @@ export class Registres {
       reunions: () => this.api.invoke(gestionCompteRendu, { code, body: { date: versIso(n.date)!, type: n.type, titre: n.titre, participants: this.liste(n.participants), contenu_md: n.contenu_md,
         decisions: (n.decisions ?? '').split('\n').map((x: string) => x.trim()).filter(Boolean),
         actions: (n.actions ?? '').split('\n').map((x: string) => x.trim()).filter(Boolean).map((l: string) => { const [action, responsable, echeance] = l.split(';').map((x) => x.trim()); return { action, responsable: responsable || undefined, echeance: /^\d{4}-\d{2}-\d{2}$/.test(echeance ?? '') ? echeance : undefined }; }) } }),
+      parties: () => this.api.invoke(gestionCreerPp, { code, body: { nom: n.nom.trim(), fonction: n.fonction, organisme: n.organisme, role: n.role, influence: n.influence, attentes: n.attentes } }),
       jalons: () => this.api.invoke(gestionCreerJalon, { code, body: { nom: n.nom.trim(), date_prevue: versIso(n.date) ?? undefined, lot: n.lot, facturation: n.facturation, documents: this.liste(n.documents) } }),
-    } as Record<Vue, () => Promise<unknown>>)[this.vue()];
+    } as Record<string, () => Promise<unknown>>)[this.vue()];
     const r = await this.s.faire(appel, 'Enregistré');
     this.enCours.set(false);
     if (r) { this.form.set(false); this.n = this.vierge(); await this.charger(); this.p.rafraichir(); }

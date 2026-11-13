@@ -1,4 +1,6 @@
-import { Component, computed, inject } from '@angular/core';
+import { Http } from '../noyau/http';
+import { Saisie } from '../noyau/saisie';
+import { Component, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
@@ -24,6 +26,8 @@ interface Ligne { id: string; code: string; nom: string; client: string; avancem
     <div class="page-head">
       <div class="titles"><span class="eyebrow">{{ aujourdhui }}</span><h1>Portefeuille</h1><p>{{ eq.courante()?.nom ?? 'Équipe' }} · {{ projets()?.length ?? 0 }} projet(s) suivi(s) · indicateurs recalculés à chaque visite.</p></div>
       <div class="actions"><button mat-stroked-button (click)="nav.chargerProjets(true)"><mat-icon>refresh</mat-icon>Actualiser</button>
+        @if (eq.estAdmin()) { <input #zip type="file" accept=".zip,application/zip" hidden (change)="importer(zip)" />
+          <button mat-stroked-button (click)="zip.click()" [disabled]="import()" title="Archive .zip d'un dossier projets/<code> du kit v1"><mat-icon>upload</mat-icon>{{ import() ? 'Import…' : 'Importer (kit v1)' }}</button> }
         @if (eq.peutCreerProjet()) { <a mat-flat-button color="primary" routerLink="/projets-nouveau"><mat-icon>create_new_folder</mat-icon>Nouveau projet</a> }</div>
     </div>
     @if (!projets()) { <app-skeleton variant="card" [count]="4" /> }
@@ -60,6 +64,16 @@ interface Ligne { id: string; code: string; nom: string; client: string; avancem
   </div>`,
 })
 export class Portefeuille {
+  private readonly http = inject(Http);
+  private readonly saisie = inject(Saisie);
+  readonly import = signal(false);
+  async importer(input: HTMLInputElement) {
+    const f = input.files?.[0]; input.value = ''; if (!f) return;
+    this.import.set(true);
+    const r = await this.saisie.faire(() => this.http.importerKit(f), 'Projet importé');
+    this.import.set(false);
+    if (r) { this.nav.chargerProjets(); const code = (r as any).projet?.code ?? (r as any).code; if (code) this.router.navigate(['/projets', code]); }
+  }
   readonly nav = inject(NavigationService);
   readonly eq = inject(EquipeService);
   readonly router = inject(Router);

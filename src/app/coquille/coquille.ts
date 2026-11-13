@@ -136,6 +136,7 @@ export class Coquille {
     g.push({ label: 'Équipe', icon: 'groups', items: [
       { label: 'Membres et rôles', icon: 'group', path: '/parametres/equipe' },
       { label: 'Mes équipes', icon: 'workspaces', path: '/parametres/equipes' },
+      { label: 'Catalogue documentaire', icon: 'library_books', path: '/parametres/catalogue' },
       { label: 'Assistants IA (MCP)', icon: 'smart_toy', path: '/parametres/claude-code' },
     ] });
     g.push({ label: 'Compte', icon: 'manage_accounts', items: [

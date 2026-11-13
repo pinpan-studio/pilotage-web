@@ -8,6 +8,7 @@ import { ProjetResumeDto } from '../../api/genere/models';
 /** Onglets d'un projet (navigation latérale, onglets, palette de commandes). */
 export const ONGLETS_PROJET = [
   { seg: 'synthese', label: "Vue d'ensemble", icon: 'space_dashboard' },
+  { seg: 'cadrage', label: 'Cadrage', icon: 'article' },
   { seg: 'fonctionnalites', label: 'Fonctionnalités', icon: 'checklist' },
   { seg: 'taches', label: 'Tâches', icon: 'task_alt' },
   { seg: 'livrables', label: 'Livrables', icon: 'description' },
