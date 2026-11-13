@@ -1,0 +1,77 @@
+@import 'styles/breakpoints';
+
+// Trois colonnes comme les autres écrans à navigation secondaire (paramètres, catalogue) :
+// colonnes latérales sans carte ni bordure, contenu dans une carte à bordure fine, aucune ombre.
+.docs { position: relative; display: grid; grid-template-columns: 232px minmax(0, 1fr) 200px; gap: var(--space-8); align-items: start; }
+
+// ─── Arborescence ──────────────────────────────────────────────
+.tree { position: sticky; top: 0; display: flex; flex-direction: column; gap: var(--space-3);
+  .searchbox { height: 36px; } }
+.group { margin-bottom: var(--space-1); }
+.g-head { width: 100%; display: flex; align-items: center; gap: var(--space-3); height: 36px; padding: 0 var(--space-3); border: 0; background: none; cursor: pointer; border-radius: var(--radius-sm);
+  font: 600 var(--fs-body-sm) var(--font-body); color: var(--text-primary);
+  span { flex: 1; text-align: left; }
+  mat-icon { font-size: 18px; width: 18px; height: 18px; color: var(--text-muted); }
+  .chev { transition: transform .2s; &.shut { transform: rotate(-90deg); } }
+  &:hover { background: var(--hover-bg); } }
+.leaf { display: flex; align-items: center; gap: var(--space-2); margin-left: 19px; padding: var(--space-2) var(--space-3) var(--space-2) var(--space-4); border-left: 0;
+  font-size: var(--fs-body-sm); color: var(--text-secondary); text-decoration: none;
+  &:hover { color: var(--text-primary); border-left-color: var(--text-muted); }
+  &.on { color: var(--primary-color); font-weight: 600; border-left: 2px solid var(--primary-color); padding-left: 15px; }
+  .badge { margin-left: auto; padding: 0 var(--space-2); border-radius: var(--radius-xs); font: 600 10.5px / 18px var(--font-body); background: var(--primary-color-light); color: var(--primary-color); } }
+
+// ─── Page ──────────────────────────────────────────────────────
+.doc { min-width: 0; padding: var(--space-8) clamp(20px, 4vw, 48px) var(--space-8);
+  > * { max-width: 720px; }
+  app-article-body { display: block; max-width: 720px; } }
+.crumbs { display: flex; align-items: center; gap: 2px; font-size: var(--fs-body-sm); color: var(--text-muted);
+  mat-icon { font-size: 16px; width: 16px; height: 16px; } .cur { color: var(--text-primary); font-weight: 500; } }
+.doc-title { margin: var(--space-2) 0 var(--space-2); font-family: var(--font-heading) !important; font-size: var(--fs-h2) !important; font-weight: 700 !important; line-height: 1.25 !important; letter-spacing: -.02em !important; }
+.meta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); margin-bottom: var(--space-6); padding-bottom: var(--space-5); border-bottom: 0;
+  font-size: var(--fs-caption); color: var(--text-muted);
+  code { font: 12px var(--font-mono); padding: 2px var(--space-2); border-radius: var(--radius-xs); background: var(--hover-bg); color: var(--text-secondary); } }
+.nav-btn { display: none !important; }
+
+.feedback { margin-top: var(--space-10); padding: var(--space-4) var(--space-5); display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); border: 0; border-radius: var(--radius-md);
+  > strong { flex: 1; font-size: var(--fs-body); font-weight: 600; }
+  .votes { display: flex; gap: var(--space-2); }
+  .thanks { display: flex; align-items: center; gap: var(--space-2); margin: 0; font-size: var(--fs-body); font-weight: 500; color: var(--success-color-text, var(--success-color)); }
+  .why { flex: 1; display: flex; flex-direction: column; gap: var(--space-3); strong { font-size: var(--fs-body); font-weight: 600; } }
+  .reasons { display: grid; grid-template-columns: 1fr 1fr; @include sm { grid-template-columns: 1fr; } }
+  .row { display: flex; justify-content: flex-end; gap: var(--space-2); } }
+
+.pager { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); margin-top: var(--space-4);
+  a { display: flex; flex-direction: column; gap: 2px; padding: var(--space-4) var(--space-4); border: 0; border-radius: var(--radius-md); text-decoration: none; color: inherit; transition: border-color .15s;
+    &:hover { background: var(--mat-sys-surface-container-highest, var(--hover-bg)); }
+    small { font-size: var(--fs-caption); color: var(--text-muted); }
+    strong { display: flex; align-items: center; gap: var(--space-2); font-size: var(--fs-body); font-weight: 600; color: var(--primary-color); mat-icon { font-size: 18px; width: 18px; height: 18px; } }
+    &.next { text-align: right; align-items: flex-end; } } }
+
+// ─── Sommaire de page ──────────────────────────────────────────
+.otp { position: sticky; top: 0; display: flex; flex-direction: column; gap: 2px; padding-top: var(--space-1);
+  .text-overline { margin-bottom: var(--space-2); }
+  a { display: flex; align-items: center; gap: var(--space-2); padding: 5px 0; font-size: var(--fs-body-sm); color: var(--text-secondary); text-decoration: none;
+    &.sub { padding-left: var(--space-3); font-size: var(--fs-caption); } &:hover { color: var(--primary-color); }
+    mat-icon { font-size: 16px; width: 16px; height: 16px; } }
+  hr { width: 100%; border: 0; border-top: 0; margin: var(--space-3) 0; } }
+
+.scrim { display: none; }
+@include tablet { .docs { grid-template-columns: 220px minmax(0, 1fr); } .otp { display: none; } }
+@include lg {
+  .docs { grid-template-columns: minmax(0, 1fr); }
+  .nav-btn { display: inline-flex !important; }
+  // Arborescence en panneau latéral (bordure, pas d'ombre portée lourde).
+  .tree { position: fixed; z-index: 30; top: 0; bottom: 0; left: 0; width: min(300px, 86%); padding: var(--space-4); box-sizing: border-box; overflow-y: auto;
+    background: var(--card-bg); border-right: 0; transform: translateX(-105%); transition: transform .28s cubic-bezier(.2, 0, 0, 1);
+    &.open { transform: none; } }
+  .scrim.open { display: block; position: fixed; inset: 0; z-index: 29; background: rgba(0, 0, 0, .32); }
+}
+@include mobile { .doc { padding: var(--space-5) var(--space-4) var(--space-6); } .pager { grid-template-columns: 1fr; } }
+
+// ─── Ajouts Pilotage ───────────────────────────────────────────
+:host { display: block; }
+.leaf { .ref-l { font: 600 11px var(--font-mono, monospace); color: var(--text-muted); margin-right: 2px; } &.on .ref-l { color: inherit; } }
+.leaf .pt { width: 7px; height: 7px; border-radius: 50%; flex: 0 0 7px; margin-left: auto; }
+.otp .bloc-droit { display: flex; flex-direction: column; gap: 2px; margin-top: var(--space-2); }
+.doc :where(h2, h3) { scroll-margin-top: 16px; }
+.vide-arbre { padding: var(--space-3); font-size: var(--fs-caption); color: var(--text-muted); }

@@ -1,7 +1,7 @@
 import { Component, computed, effect, inject, signal, untracked, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
-import { MatExpansionModule } from '@angular/material/expansion';
+import { GroupedBoardComponent, PlanningGroup, PlanningItem } from '../shared/components/planning';
 import { Api } from '../../api/genere/api';
 import { projetsJournal, projetsSessions } from '../../api/genere/functions';
 import { EvenementDto, SessionDto } from '../../api/genere/models';
@@ -17,13 +17,13 @@ const PAR_PAGE = 30;
 /** Journal : sessions de développement et flux d'événements en défilement infini (pages de 30, filtres côté API). */
 @Component({
   selector: 'app-journal',
-  imports: [FormsModule, MatIconModule, MatExpansionModule, SkeletonComponent, EmptyStateComponent, DefilementInfiniDirective, ...PIPES],
+  imports: [FormsModule, MatIconModule, GroupedBoardComponent, SkeletonComponent, EmptyStateComponent, DefilementInfiniDirective, ...PIPES],
   styles: [`.jour { position: sticky; top: 0; z-index: 1; padding: var(--space-3) 0 var(--space-2); background: var(--card-bg); font: 600 var(--fs-overline) / 1.4 var(--font-body); letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); }
     .fin { padding: var(--space-4) 0 var(--space-2); text-align: center; font-size: var(--fs-caption); color: var(--text-muted); }`],
   template: `
   <div class="grid-3">
     <section class="card span-2">
-      <div class="card-head"><h2>Événements</h2><span class="sub">{{ total() ?? '…' }} au total</span></div>
+      <div class="card-head"><h2>Journal</h2><span class="sub">{{ total() ?? '…' }} au total</span></div>
       <div class="card-body">
         <div class="toolbar-row">
           <button type="button" class="chip-filter" [class.on]="!evt()" (click)="filtrer('', depot())">Tous</button>
@@ -51,22 +51,10 @@ const PAR_PAGE = 30;
     </section>
 
     <section class="card">
-      <div class="card-head"><h2>Sessions</h2><span class="sub">{{ sessions()?.length ?? '…' }}</span></div>
+      <div class="card-head"><h2>Sessions par dépôt</h2><span class="sub">{{ sessions()?.length ?? '…' }}</span></div>
       <div class="card-body">
         @if (!sessions()) { <app-skeleton variant="avatar" [count]="4" /> }
-        @else {
-          <mat-accordion displayMode="flat">
-            @for (s of sessions(); track s.id) {
-              <mat-expansion-panel>
-                <mat-expansion-panel-header><mat-panel-title>{{ s.debut | dateFr }} · {{ s.depot ?? '—' }}</mat-panel-title>
-                  <mat-panel-description>{{ s.auteur }}@if (s.utilisateur_id) { &nbsp;<span class="agent-badge"><mat-icon>smart_toy</mat-icon>Agent</span> }</mat-panel-description></mat-expansion-panel-header>
-                @if (s.fonctionnalites.length) { <p>@for (f of s.fonctionnalites; track f) { <span class="ref">{{ f }}</span> }</p> }
-                @if (s.notes.length) { <h3 style="margin-top:0">Notes</h3><ul>@for (n of s.notes; track n.ts) { <li><small class="muted">{{ n.ts | dateFr: true }}</small> — {{ n.texte }}</li> }</ul> }
-                <div class="prose" style="font-size: var(--fs-body-sm)" [innerHTML]="s.resume | md"></div>
-              </mat-expansion-panel>
-            } @empty { <app-empty-state icon="code" title="Aucune session" subtitle="Les sessions Claude Code apparaîtront ici." /> }
-          </mat-accordion>
-        }
+        @else { <app-grouped-board [items]="itemsSessions()" [groups]="groupesDepots()" layout="list" [showProgress]="false" ungroupedLabel="Sans dépôt" /> }
       </div>
     </section>
   </div>`,
@@ -90,6 +78,15 @@ export class Journal {
     return g;
   });
   icone = (t: string) => ICONES[t] ?? 'circle';
+  /** Sessions regroupées par dépôt (vue groupée du ui-kit, layout="list"). */
+  readonly groupesDepots = computed<PlanningGroup[]>(() => (this.p.detail()?.depots ?? []).map((d) => ({ key: d.nom, label: d.nom, subtitle: d.stack, icon: 'source' })));
+  readonly itemsSessions = computed<PlanningItem[]>(() => (this.sessions() ?? []).map((s) => {
+    const resume = s.resume.replace(/^---[\s\S]*?---/, '').split('\n').map((l) => l.replace(/^[#>*\-\s]+/, '').trim()).filter((l) => l && !/^Session du/.test(l));
+    return { id: s.id, title: resume[0] || (s.notes[0]?.texte ?? 'Session'), description: resume.slice(1, 3).join(' · '), group: s.depot ?? undefined,
+      start: s.debut, end: s.fin ?? undefined, done: !!s.fin, assignee: s.auteur, tone: s.utilisateur_id ? 'purple' : 'info',
+      badge: s.utilisateur_id ? { label: 'Agent', tone: 'purple' } : { label: s.fin ? 'Clôturée' : 'En cours', tone: s.fin ? 'success' : 'info' },
+      tags: [...s.fonctionnalites, ...(s.notes.length ? [`${s.notes.length} note(s)`] : [])] };
+  }));
 
   constructor() {
     effect(() => {

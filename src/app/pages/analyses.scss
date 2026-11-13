@@ -1,0 +1,75 @@
+@import 'styles/breakpoints';
+
+:host { display: block; height: auto; }
+
+.grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-4);
+  .span-2 { grid-column: span 2; }
+  .span-3 { grid-column: 1 / -1; }
+  @include tablet { grid-template-columns: repeat(2, minmax(0, 1fr)); .span-2, .span-3 { grid-column: 1 / -1; } }
+  @include mobile { grid-template-columns: minmax(0, 1fr); .span-2, .span-3 { grid-column: auto; } } }
+.tag { padding: 2px var(--space-2); border-radius: var(--radius-sm); background: var(--hover-bg); font-size: 11px; font-weight: 600; color: var(--text-secondary); white-space: nowrap; }
+.chart { position: relative; height: 260px; @include mobile { height: 220px; } }
+.map { overflow: hidden; app-map { display: block; margin-top: var(--space-3); } }
+
+// ─── Treemap ───────────────────────────────────────────────────
+.treemap { display: flex; gap: var(--space-1); height: 260px;
+  @include sm { flex-direction: column; height: 420px; } }
+.tm-group { flex-basis: 0; min-width: 0; display: flex; flex-direction: column; gap: var(--space-1);
+  .tm-title { font-size: var(--fs-caption); font-weight: 600; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } }
+.tm-kids { flex: 1; display: flex; flex-direction: column; gap: var(--space-1); min-height: 0; }
+.tm-cell { flex-basis: 0; min-height: 0; display: flex; flex-direction: column; justify-content: flex-end; padding: var(--space-2) var(--space-3); border-radius: var(--radius-sm); overflow: hidden;
+  background: var(--tone); color: #fff;
+  strong { font-size: var(--fs-body-sm); font-weight: 600; } span { font-size: var(--fs-caption); opacity: .9; font-variant-numeric: tabular-nums; } }
+
+// ─── Entonnoir ─────────────────────────────────────────────────
+.funnel { display: flex; flex-direction: column; gap: var(--space-3); }
+.f-row { display: grid; grid-template-columns: 150px minmax(0, 1fr) 70px 52px; align-items: center; gap: var(--space-3); font-size: var(--fs-body-sm);
+  @include sm { grid-template-columns: 110px minmax(0, 1fr) 60px; .f-rate { display: none; } } }
+.f-lbl { color: var(--text-secondary); }
+.f-track { height: 28px; display: flex; justify-content: center; }
+.f-bar { height: 100%; border-radius: var(--radius-sm); background: var(--primary-color); transition: width .6s ease; }
+.f-val { text-align: right; font-weight: 600; }
+.f-rate { text-align: right; font-size: var(--fs-caption); color: var(--text-muted); }
+.f-foot { margin: var(--space-2) 0 0; font-size: var(--fs-body-sm); color: var(--text-secondary); strong { color: var(--text-primary); } }
+
+// ─── Anneaux ───────────────────────────────────────────────────
+.rings { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4) var(--space-3); }
+.ring { position: relative; display: flex; flex-direction: column; align-items: center; text-align: center;
+  svg { width: 92px; height: 92px; transform: rotate(-90deg); }
+  .r-track { fill: none; stroke: var(--hover-bg); stroke-width: 10; }
+  .r-val { fill: none; stroke: var(--tone); stroke-width: 10; stroke-linecap: round; transition: stroke-dasharray .6s ease; }
+  strong { position: absolute; top: 33px; font: 600 var(--fs-body-lg) var(--font-heading); }
+  span { margin-top: var(--space-2); font-size: var(--fs-caption); line-height: 1.35; color: var(--text-secondary); } }
+
+// ─── Heatmap ───────────────────────────────────────────────────
+.heat { display: grid; grid-template-columns: 34px repeat(14, minmax(0, 1fr)); gap: 3px; align-items: center;
+  i { display: block; aspect-ratio: 1.6; border-radius: var(--radius-xs); cursor: default; &:hover { outline: 2px solid var(--text-primary); outline-offset: -1px; } }
+  .hx { font-size: 10px; color: var(--text-muted); text-align: center; white-space: nowrap; }
+  .hy { font-size: var(--fs-caption); color: var(--text-muted); }
+  @include sm { .hx:nth-of-type(even) { visibility: hidden; } } }
+.legend-scale { display: flex; align-items: center; justify-content: flex-end; gap: 3px; margin-top: var(--space-3); font-size: 11px; color: var(--text-muted);
+  span { margin: 0 var(--space-1); } i { width: 12px; height: 12px; border-radius: var(--radius-xs); } }
+
+// ─── Classement ────────────────────────────────────────────────
+.ranking { display: flex; flex-direction: column; gap: var(--space-4); }
+.rk { display: flex; gap: var(--space-3); align-items: flex-start;
+  .rk-pos { width: 22px; font: 600 var(--fs-body) var(--font-heading); color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .rk-main { flex: 1; min-width: 0; }
+  .rk-top { display: flex; justify-content: space-between; font-size: var(--fs-body-sm); strong { font-weight: 600; } span { color: var(--text-secondary); } }
+  .rk-bar { height: 6px; margin: var(--space-2) 0 var(--space-1); border-radius: var(--radius-xs); background: var(--hover-bg); overflow: hidden;
+    i { display: block; height: 100%; border-radius: var(--radius-xs); background: var(--info-color); &.over { background: var(--success-color); } } }
+  small { font-size: var(--fs-caption); color: var(--text-muted); } }
+
+// ─── Calendrier d'activité ─────────────────────────────────────
+.cal-wrap { overflow-x: auto; }
+.cal { min-width: 720px; }
+.cal-months { display: grid; grid-template-columns: 30px repeat(52, minmax(0, 1fr)); margin-bottom: var(--space-1); font-size: 11px; color: var(--text-muted);
+  span { white-space: nowrap; overflow: visible; } }
+.cal-grid { display: grid; grid-template-columns: 30px repeat(52, minmax(0, 1fr)); gap: 3px; }
+.cal-days { display: grid; grid-template-rows: repeat(7, 1fr); gap: 3px; font-size: 10px; color: var(--text-muted); span { line-height: 1; align-self: center; } }
+.cal-week { display: grid; grid-template-rows: repeat(7, 1fr); gap: 3px; i { display: block; aspect-ratio: 1; border-radius: 2px; } }
+.lv0 { background: var(--hover-bg); }
+.lv1 { background: color-mix(in srgb, var(--primary-color) 25%, var(--hover-bg)); }
+.lv2 { background: color-mix(in srgb, var(--primary-color) 50%, var(--hover-bg)); }
+.lv3 { background: color-mix(in srgb, var(--primary-color) 75%, var(--hover-bg)); }
+.lv4 { background: var(--primary-color); }

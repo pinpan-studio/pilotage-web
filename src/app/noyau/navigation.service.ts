@@ -9,7 +9,6 @@ import { ProjetResumeDto } from '../../api/genere/models';
 export const ONGLETS_PROJET = [
   { seg: 'synthese', label: "Vue d'ensemble", icon: 'space_dashboard' },
   { seg: 'fonctionnalites', label: 'Fonctionnalités', icon: 'checklist' },
-  { seg: 'planning', label: 'Planning', icon: 'view_timeline' },
   { seg: 'taches', label: 'Tâches', icon: 'task_alt' },
   { seg: 'livrables', label: 'Livrables', icon: 'description' },
   { seg: 'journal', label: 'Journal', icon: 'history' },

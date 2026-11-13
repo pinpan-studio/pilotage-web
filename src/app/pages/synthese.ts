@@ -17,6 +17,7 @@ import { StatCounterComponent } from '../shared/components/data/stat-counter.com
 import { DataColumn, DataTableComponent } from '../shared/components/data/data-table.component';
 import { BannerComponent } from '../shared/components/feedback';
 import { ProjetCourant } from './projet';
+import { Analyses, OngletAnalyse } from './analyses';
 
 const ICONE_ALERTE: Record<string, string> = { haute: 'error', moyenne: 'warning', basse: 'info' };
 const TON_ALERTE: Record<string, string> = { haute: 'tone-error', moyenne: 'tone-warning', basse: 'tone-neutral' };
@@ -28,9 +29,13 @@ interface Surveillance { id: string; ref: string; titre: string; statut: string;
 import { Chargement } from '../noyau/chargement';
 @Component({
   selector: 'app-synthese',
-  imports: [Chargement, DecimalPipe, RouterLink, MatIconModule, MatProgressBarModule, BaseChartDirective, StatCounterComponent, DataTableComponent, BannerComponent, Statut, ...PIPES],
+  imports: [Chargement, Analyses, DecimalPipe, RouterLink, MatIconModule, MatProgressBarModule, BaseChartDirective, StatCounterComponent, DataTableComponent, BannerComponent, Statut, ...PIPES],
   template: `
-  @if (p.indicateurs(); as m) {
+  <nav class="tabs" aria-label="Sections du tableau de bord" style="margin-top: -8px">
+    @for (o of ongletsAnalyse; track o.id) { <button type="button" [class.on]="onglet() === o.id" (click)="onglet.set(o.id)"><mat-icon>{{ o.icone }}</mat-icon>{{ o.libelle }}</button> }
+  </nav>
+  @if (onglet() !== 'ensemble') { <app-analyses [onglet]="$any(onglet())" /> }
+  @else if (p.indicateurs(); as m) {
     @if (nbHautes(); as n) {
       <app-banner class="alert-banner" tone="error" [title]="n + ' alerte(s) haute(s)'" compact [dismissible]="false">{{ m.alertes[0].texte }}</app-banner>
     }
@@ -121,6 +126,11 @@ export class Synthese {
   private readonly ref = inject(ReferentielsService);
   private readonly router = inject(Router);
   readonly evenements = signal<EvenementDto[]>([]);
+  readonly onglet = signal<'ensemble' | OngletAnalyse>('ensemble');
+  readonly ongletsAnalyse: { id: 'ensemble' | OngletAnalyse; libelle: string; icone: string }[] = [
+    { id: 'ensemble', libelle: 'Synthèse', icone: 'space_dashboard' }, { id: 'avancement', libelle: 'Avancement', icone: 'stacked_bar_chart' },
+    { id: 'qualite', libelle: 'Qualité et risques', icone: 'verified' }, { id: 'activite', libelle: 'Activité', icone: 'insights' },
+  ];
   readonly foncs = signal<FonctionnaliteDto[]>([]);
 
   readonly nbHautes = computed(() => this.p.indicateurs()?.alertes.filter((a) => a.niveau === 'haute').length ?? 0);
